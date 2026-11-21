@@ -18,7 +18,13 @@ gesetzt, bei Wiederaufnahme gelöscht.
 Schritt 3 ergänzt Sitzungen mit Datum, optionalen Zeiten, Teilnehmenden und
 Tagesordnung. TOPs unterstützen Themenzuordnung, Nummer, Reihenfolge, Status,
 Ergebnis/Beschluss und den Verweis auf eine Folgesitzung. Sitzungen und TOPs haben
-Verlaufsansichten. Maßnahmen und Dokumente bleiben Platzhalter für Schritte 4–5.
+Verlaufsansichten.
+Schritt 4 ergänzt Maßnahmen als Gesamtübersicht und Themen-Tab, Filter,
+Überfälligkeitsmarkierung, Begründungen, Wirksamkeitsprüfung und Anlage aus einem
+bereits gespeicherten TOP.
+Schritt 5 ergänzt Dokumente in allen vier Kontexten sowie eine Gesamtübersicht:
+Upload, Zuordnung, Download/Öffnen, Statuswechsel, Dateinamensuche und neue
+Versionen. Die Anwendung verändert das Datenbankschema nicht.
 Eine manuelle Prüfanleitung und die konkreten Speicherregeln stehen in `PRUEFUNG.md`.
 
 ## Installation und Start
@@ -60,25 +66,62 @@ Navigation, Filter/Sortierung und die Speicherung des Verbindungsprofils.
 Weitere Tests prüfen den Transaktionskontext und gleichen Datenmodelle sowie
 Statuswerte mit dem SQL-Schema ab.
 
-Ein optionaler, ausschließlich lesender Datenbanktest nutzt `QM_TEST_DSN`
-(libpq-Verbindungszeichenfolge einer separaten Testdatenbank mit bestehendem
-QM-Schema). Ohne diese Variable wird er übersprungen. Die Themen-Repositorytests nutzen das vorhandene Schema und rollen sämtliche
-Teständerungen einschließlich Audit-Einträgen am Ende zurück. PostgreSQL-Sequenzen
-können dabei wie üblich Lücken erhalten. Ein Schema wird nicht automatisch angelegt. Zugangsdaten nicht einchecken.
+Datenbanktests nutzen `QM_TEST_DSN` (libpq-Verbindungszeichenfolge einer separaten
+Testdatenbank mit bestehendem QM-Schema). Ohne diese Variable werden sie
+übersprungen. Der Verbindungstest liest ausschließlich. Repository- und
+Datenbank-UI-Tests erzeugen Testdatensätze, rollen aber sämtliche Änderungen
+einschließlich Audit-Einträgen zurück. PostgreSQL-Sequenzen können dabei Lücken
+erhalten. Ein Schema wird nicht automatisch angelegt. Zugangsdaten nicht einchecken.
 
-## Fortsetzung
+Stand nach Schritt 5: 36 Tests bestanden gegen PostgreSQL 17.12 auf macOS.
+Der Start externer Programme zum Öffnen von Dokumenten wird im automatischen
+Test simuliert; Dateiexport und temporäre Dateien werden tatsächlich geprüft.
 
-Als Nächstes folgen Maßnahmen (Schritt 4) und Dokumente einschließlich
-Zuordnung zu Themen (Schritt 5).
+## Speicherregeln
 
 Repository-Operationen verwenden `Database.transaction()`; zusammengehörige
 Schreibvorgänge teilen sich einen Cursor. Transaktionen nicht verschachteln.
 Für Auditfelder gilt `Database.user` (vom Server ermittelter `current_user`).
 Versionskonflikte werden durch `UPDATE ... WHERE id = %s AND version = %s`
-und Prüfung von `rowcount` erkannt; `ConcurrencyError` liegt bereits bereit.
+und Prüfung von `rowcount` erkannt. Dokumente werden zusätzlich je Versionsgruppe
+mit einer transaktionsgebundenen PostgreSQL-Advisory-Sperre serialisiert.
 
-Schemahinweis für Schritt 5: Nur Thema, Sitzung, Besprechung und Maßnahme haben
-den automatischen Versions-Trigger. `qm.dokument` besitzt einen Metadaten-Trigger,
-aber keinen automatischen Versionszähler und keine `geaendert_von`-Spalte.
-Dokumentversionen müssen deshalb gesondert entsprechend dem Schema behandelt
-werden. Das Dokument-Datenmodell enthält nur Metadaten, keine Binärinhalte.
+## Dokumente
+
+Im Dokument-Tab eines gespeicherten Themas **Hochladen** wählen; die Zuordnung
+wird zusammen mit den Datei-Bytes gespeichert. Die globale Dokumentenübersicht
+fragt beim Upload nach dem Ziel. Ein bestehendes Dokument lässt sich dort über
+**Zuordnen** mit weiteren Themen/Sitzungen/TOPs/Maßnahmen verknüpfen.
+**Zuordnung lösen** entfernt im jeweiligen Tab nur die Verbindung, nicht die Datei.
+
+**Neue Version** legt eine neue Datei als Entwurf an und übernimmt alle vorhandenen
+Zuordnungen der ausgewählten Vorgängerversion. Deren Inhalt bleibt unverändert.
+Bereits abgelöste Versionen können keine weiteren direkten Nachfolger erhalten;
+bitte den letzten Nachfolger auswählen. Die Liste zeigt auch ältere Versionen.
+
+Die vorhandene Spalte `version` dient zugleich als optimistischer Änderungsstand:
+Neue Dateien starten mit 1, Statuswechsel erhöhen den Stand der jeweiligen Zeile,
+ein neuer Nachfolger startet mit Vorgängerstand + 1. Sie ist deshalb **keine reine
+Zählung der Inhaltsversionen**; die Inhaltskette ergibt sich aus Dokumentgruppe
+und Vorgänger-UUID. Stände unterschiedlicher Zeilen können sich überschneiden.
+Das ist die MVP-Lösung ohne Schemaänderung. Eine getrennte Inhaltsversionsnummer
+ist als spätere Entscheidung in `TODO.md` festgehalten.
+
+Freigaben setzen Benutzer und Zeitpunkt. `qm.dokument` hat weder einen
+Versions-Trigger noch `geaendert_von`; der Repository-Code erhöht die Version
+explizit. Das bestehende Schema auditiert Dokumente/Zuordnungen nicht in
+`qm.verlauf`. Diese Grenze bleibt sichtbar in der Prüfanleitung und TODO-Liste.
+
+Listen laden nur Metadaten. Download prüft Dateigröße und, sofern vorhanden,
+SHA-256 gegen die ausgelesenen Bytes. **Öffnen** erzeugt eine temporäre Kopie,
+die bis zum Beenden der Anwendung verfügbar bleibt. Änderungen dieser Kopie
+werden nicht automatisch zurückgeladen; dafür **Neue Version** verwenden.
+
+Das Upload-Limit beträgt standardmäßig 25 MB und ist über **Upload-Limit** lokal
+konfigurierbar (QSettings). Übertragungen erfolgen synchron mit Wartecursor.
+Eine Volltextsuche ist weiterhin nicht Teil des MVP.
+
+## Nächster Schritt
+
+Manuelle Abnahme nach `PRUEFUNG.md`, anschließend die offenen Prüfungen und
+fachlichen Entscheidungen in der Projektdatei `TODO.md` bearbeiten.

@@ -10,6 +10,7 @@ from qm_app.repositories.sitzung_repo import SitzungRepository
 from qm_app.repositories.verlauf_repo import VerlaufRepository
 from qm_app.ui.verlauf_widget import VerlaufWidget
 from qm_app.ui.agenda_widget import AgendaWidget
+from qm_app.ui.dokument_widget import DokumentWidget
 
 
 class SitzungDialog(QDialog):
@@ -73,6 +74,7 @@ class SitzungDialog(QDialog):
         self.tabs.addTab(self.agenda, 'Tagesordnung')
         self.history = VerlaufWidget(VerlaufRepository(database), 'qm.sitzung', sitzung.id if sitzung else None)
         self.tabs.addTab(self.history, 'Verlauf')
+        self.tabs.addTab(DokumentWidget(database,'sitzung',sitzung.id if sitzung else None),'Dokumente')
         self.buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
         self.buttons.button(QDialogButtonBox.StandardButton.Save).setText('Sitzung speichern')
         self.buttons.button(QDialogButtonBox.StandardButton.Cancel).setText('Schließen ohne Stammdaten zu speichern')

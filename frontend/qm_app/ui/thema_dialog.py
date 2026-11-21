@@ -4,6 +4,8 @@ from PySide6.QtWidgets import (QDialog, QVBoxLayout, QFormLayout, QWidget, QTabW
 from qm_app.db import DatabaseError, ConcurrencyError
 from qm_app.models import Thema, THEMA_STATUS
 from qm_app.ui.verlauf_widget import VerlaufWidget
+from qm_app.ui.massnahme_view import MassnahmeView
+from qm_app.ui.dokument_widget import DokumentWidget
 
 
 class ThemaDialog(QDialog):
@@ -40,6 +42,8 @@ class ThemaDialog(QDialog):
         self.tabs.addTab(form_page, 'Stammdaten')
         self.verlauf = VerlaufWidget(history, 'qm.thema', thema.id if thema else None)
         self.tabs.addTab(self.verlauf, 'Verlauf')
+        self.tabs.addTab(MassnahmeView(repository.db,thema.id if thema else None,scoped=True),'Maßnahmen')
+        self.tabs.addTab(DokumentWidget(repository.db,'thema',thema.id if thema else None),'Dokumente')
         self.buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
         self.buttons.button(QDialogButtonBox.StandardButton.Save).setText('Speichern')
         self.buttons.button(QDialogButtonBox.StandardButton.Cancel).setText('Abbrechen')

@@ -12,6 +12,8 @@ from qm_app.repositories.sitzung_repo import SitzungRepository
 from qm_app.repositories.verlauf_repo import VerlaufRepository
 from qm_app.ui.table_model import TableModel, Column
 from qm_app.ui.verlauf_widget import VerlaufWidget
+from qm_app.ui.massnahme_dialog import MassnahmeDialog
+from qm_app.ui.dokument_widget import DokumentWidget
 
 
 class AgendaDialog(QDialog):
@@ -53,6 +55,11 @@ class AgendaDialog(QDialog):
         tabs.addTab(page, 'Tagesordnungspunkt')
         self.history = VerlaufWidget(VerlaufRepository(database), 'qm.besprechung', item.id if item else None)
         tabs.addTab(self.history, 'Verlauf')
+        tabs.addTab(DokumentWidget(database,'besprechung',item.id if item else None),'Dokumente')
+        measure=QPushButton('Maßnahme aus gespeichertem TOP anlegen')
+        measure.setEnabled(item is not None)
+        measure.clicked.connect(self.create_measure)
+        layout.addWidget(measure)
         self.buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
         self.buttons.button(QDialogButtonBox.StandardButton.Save).setText('TOP speichern')
         self.buttons.button(QDialogButtonBox.StandardButton.Cancel).setText('Abbrechen')
@@ -60,6 +67,14 @@ class AgendaDialog(QDialog):
         self.buttons.rejected.connect(self.reject)
         layout.addWidget(self.buttons)
         self.populate()
+
+    def create_measure(self):
+        try:
+            current=self.repo.get(self.item.id)
+            MassnahmeDialog(self.db,thema_id=current.thema_id,besprechung_id=current.id,
+                beschluss=current.beschluss,parent=self).exec()
+        except DatabaseError as error:
+            QMessageBox.warning(self,'Maßnahme nicht verfügbar',str(error))
 
     def populate(self):
         item = self.item

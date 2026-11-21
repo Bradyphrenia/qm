@@ -1,10 +1,10 @@
-# Prüfanleitung – Stand nach Schritt 3
+# Prüfanleitung – Stand nach Schritt 5
 
 ## Umfang
 
 Umgesetzt: Anmeldung, Themen und Verlauf sowie Sitzungen, Teilnehmende und
-Tagesordnung. Maßnahmen und Dokumentenbedienung folgen gemäß Plan in Schritt 4
-und 5. Das vorhandene SQL-Schema wurde nicht verändert.
+Tagesordnung, Maßnahmen und Dokumentenverwaltung. Das vorhandene SQL-Schema
+wurde nicht verändert.
 
 ## Manuell ausprobieren
 
@@ -36,6 +36,38 @@ und 5. Das vorhandene SQL-Schema wurde nicht verändert.
 Diese manuellen Schritte speichern Testdaten dauerhaft. Die automatischen
 Repositorytests rollen ihre Änderungen dagegen zurück.
 
+## Maßnahmen und Dokumente ausprobieren
+
+1. Ein gespeichertes Thema öffnen und im Tab **Maßnahmen** eine Maßnahme mit
+   Titel, Verantwortlichen und Fälligkeit anlegen. Alternativ bei einem
+   gespeicherten TOP **Maßnahme aus gespeichertem TOP anlegen** verwenden:
+   der gespeicherte Beschluss wird als Beschreibung vorgeschlagen.
+2. Die Maßnahme erneut öffnen, Umsetzung und Abschlussdatum erfassen. Unter
+   **Wirksamkeitsprüfung** Ergebnis, Datum und prüfende Person eingeben.
+   Status `wirksam`/`nicht_wirksam` muss zum Prüfungsergebnis passen.
+3. Eine offene Maßnahme mit gestriger Fälligkeit anlegen. In der Übersicht muss
+   sie orange hervorgehoben sein. Status- und Verantwortlichenfilter ausprobieren.
+   Bei Verschiebung des Termins nach hinten oder Entfernen eines vorhandenen
+   Termins eine Begründung eingeben. Ebenso bei Abbruch/Ablehnung/Zurückstellung.
+4. Ein gespeichertes Thema öffnen, Tab **Dokumente**, **Hochladen**. Eine kleine
+   Testdatei wählen und optional den Dokumenttyp angeben. Dateiname, Dateigröße
+   und bei Auswahl SHA-256 kontrollieren. Die bestehenden Musterdokumente lassen
+   sich ebenfalls anzeigen und herunterladen.
+5. **Speichern unter** ausprobieren und die Datei vergleichen. **Öffnen** muss
+   das zugehörige externe Programm starten; dies ist noch manuell zu prüfen.
+6. In der globalen Dokumentenübersicht den Dateinamen suchen. Mit **Zuordnen**
+   das Dokument zusätzlich einer Sitzung, einem TOP oder einer Maßnahme zuordnen.
+   Im jeweiligen Dokument-Tab prüfen. **Zuordnung lösen** lässt die Datei und
+   andere Zuordnungen bestehen.
+7. **Neue Version** mit einer veränderten Testdatei wählen. Beide Dateien müssen
+   erhalten bleiben, der neue Datensatz ist ein Entwurf und hat dieselben
+   Zuordnungen. Vorgänger/Gruppe prüfen. Eine erneute Versionierung vom bereits
+   abgelösten Vorgänger muss abgewiesen werden.
+8. Den neuen Datensatz auswählen, Status auf `freigegeben` setzen und neu laden.
+   Freigabebenutzer und erhöhter Änderungsstand müssen vorhanden sein.
+9. Das Upload-Limit vorübergehend reduzieren; eine zu große Datei muss
+   verständlich abgewiesen werden. Danach den gewünschten Wert wiederherstellen.
+
 ## Speicherregeln und Grenzen
 
 - Stammdaten und Teilnehmende werden zusammen mit **Sitzung speichern** in einer
@@ -60,11 +92,41 @@ Repositorytests rollen ihre Änderungen dagegen zurück.
 - Eine Löschfunktion für Sitzungen/TOPs ist nicht vorgesehen; TOPs können den
   Status `abgesetzt`, Sitzungen den Status `abgesagt` erhalten.
 
+## Ergänzende Grenzen von Maßnahmen und Dokumenten
+
+- Neue Themen und Maßnahmen zuerst speichern und erneut öffnen, bevor
+  zugehörige Dokumente verwaltet werden. Dokument- und Maßnahmenaktionen werden
+  sofort und unabhängig von ungespeicherten Stammdaten des umgebenden Dialogs
+  gespeichert.
+- Orange bedeutet überfällige Umsetzung: Datum vor heute, kein Abschlussdatum,
+  Status `offen`, `in_bearbeitung` oder `zurueckgestellt`. Für ausstehende
+  Wirksamkeitsprüfungen gibt es im Schema keine eigene Fälligkeit.
+- Der Abschluss einer Maßnahme wird mit explizitem Abschlussdatum gepflegt;
+  ein Statuswechsel allein ergänzt dieses Datum nicht automatisch.
+- `version` beim Dokument ist zugleich Änderungsstand, nicht ausschließlich
+  Inhaltsversionsnummer. Statusänderungen zählen mit. Vorgänger/Gruppe bilden
+  die Inhaltskette; Details und Beispiele zur Semantik stehen in der README.
+- Dokumentinhalte werden beim Bearbeiten nicht überschrieben, sondern als neue
+  Zeile gespeichert. Es gibt keine allgemeine Löschaktion in der Oberfläche;
+  für nicht mehr aktuelle Dateien den Status wechseln oder eine Zuordnung lösen.
+- Das bestehende Schema protokolliert Dokumentstatus und Dokumentzuordnungen
+  nicht im Audit. Es gibt deshalb keinen vollständigen Dokument-Verlauf.
+- Direktes externes SQL, das Dokumente ohne Erhöhung der `version` verändert,
+  umgeht den Versionsschutz der Anwendung. Die Gruppensperre wird ebenfalls
+  nur von kooperierenden Schreibern eingehalten.
+- Änderungen an einer extern geöffneten temporären Kopie werden nicht
+  automatisch hochgeladen. Zum Übernehmen die Datei speichern und als neue
+  Version hochladen; die temporäre Kopie wird beim App-Ende bereinigt.
+
 ## Automatische Prüfung
 
-23 Tests prüfen unter anderem Login, Filter, Schemaabgleich, Themenlebenszyklus,
-Sitzungen mit Teilnehmern, atomare Speicherung, Versionskonflikte, doppelte
-Themenzuordnung, Sortierung, Beschluss, Vertagung und Verlauf. Die Tests liefen
+36 Tests prüfen Login, Filter, Schemaabgleich, Themen-/Sitzungs-/Maßnahmenabläufe,
+atomare Speicherung, Versionskonflikte, doppelte Themenzuordnung, Beschlüsse,
+Vertagung, Wirksamkeitsprüfung sowie Dokument-Upload, Download, Größenlimit,
+Prüfsummen, Versionen, Zuordnungen und den Datenbank-Löschschutz.
+Auch der durchgängige Weg vom Thema über den TOP zur Maßnahme und ihrem Dokument
+ist geprüft. Das Öffnen externer Programme wird simuliert; temporäre Dateikopien
+und Dateiexport werden tatsächlich geprüft. Die Tests liefen
 gegen die lokale PostgreSQL-17-Datenbank `epz`; die Fensterprüfungen liefen im
 Qt-Offscreen-Modus auf macOS. Windows und PostgreSQL 10 wurden nicht getestet.
 

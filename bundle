@@ -1,0 +1,16 @@
+#!/bin/sh
+# macOS: Cython -> separate staging directory -> PyInstaller qm.app.
+set -eu
+cd "$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+if [ "$(uname -s)" != "Darwin" ]; then
+    echo "Dieses Script ist für macOS. Unter Windows bundle.bat verwenden." >&2
+    exit 1
+fi
+if [ -n "${QM_PYTHON:-}" ]; then
+    qm_python="$QM_PYTHON"
+elif [ -x "frontend/.venv/bin/python" ]; then
+    qm_python="frontend/.venv/bin/python"
+else
+    qm_python="python3"
+fi
+exec "$qm_python" build_tools/build.py --platform macos "$@"

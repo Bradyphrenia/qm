@@ -1,41 +1,58 @@
 # TODO – QM Desktop
 
-Stand: 21.11.2026, nach Umsetzung der Planschritte 1–3.
+Stand: 21.11.2026, nach Umsetzung der Planschritte 1–5.
 Grundlage: `.junie/plans/qm-pyside6-frontend.md` und `frontend/PRUEFUNG.md`.
-Die folgenden Punkte sind offene Arbeiten, bekannte Grenzen oder noch zu
-entscheidende Erweiterungen. Sie sind keine bereits umgesetzten Funktionen.
+Nicht abgehakte Punkte sind offene Arbeiten, bekannte Grenzen oder noch zu
+entscheidende Erweiterungen. Erledigte Arbeiten sind ausdrücklich markiert.
 Das bestehende SQL-Schema bleibt für den MVP maßgeblich.
 
-## Nächste Arbeiten gemäß Plan
+## Umgesetzte Arbeiten gemäß Plan
 
-- [ ] **Schritt 4 – Maßnahmen:** Repository, Gesamtübersicht und Themen-Tab,
+- [x] **Schritt 4 – Maßnahmen:** Repository, Gesamtübersicht und Themen-Tab,
   Status-/Verantwortlichenfilter, Hervorhebung überfälliger Maßnahmen,
   Bearbeitung mit Begründung und Wirksamkeitsprüfung, Anlage aus einem TOP.
-- [ ] **Schritt 5 – Dokumente:** Upload, Zuordnung zu Thema/Sitzung/TOP/Maßnahme,
+- [x] **Schritt 5 – Dokumente:** Upload, Zuordnung zu Thema/Sitzung/TOP/Maßnahme,
   Download/Öffnen, Metadaten, Statuswechsel und neue Dokumentversionen.
   Schwerpunkt: Dokumente zunächst zuverlässig zu Themen anlegen und verwalten.
-- [ ] Dokument-Upload und Zuordnung in einer Transaktion speichern; Listen ohne
+- [x] Dokument-Upload und Zuordnung in einer Transaktion speichern; Listen ohne
   Binärinhalt laden. Größenlimit (Standard 25 MB) und Wartecursor ergänzen.
-- [ ] Dokumenttests ergänzen: Prüfsumme, Dateigröße, Byte-Gleichheit,
+- [x] Dokumenttests ergänzen: Prüfsumme, Dateigröße, Byte-Gleichheit,
   Versionskette, Konfliktbehandlung und Löschschutz freigegebener Dokumente.
 
-## Bei der Dokumentenumsetzung beachten
+## Dokumentenumsetzung – berücksichtigt
 
-- [ ] **Dokumentversionierung ausdrücklich implementieren:** Anders als die
+- [x] **Dokumentversionierung ausdrücklich implementieren:** Anders als die
   vier operativen Haupttabellen hat `qm.dokument` keinen automatischen
   Versions-Trigger. `dokument_gruppe_id` und `vorgaenger_dokument_id` für neue
   Versionen nutzen; fachliche Versionen und Schutz vor parallelen Änderungen
   konsistent behandeln.
-- [ ] `qm.dokument` hat keine Spalte `geaendert_von`. Schreiboperationen am
+- [x] `qm.dokument` hat keine Spalte `geaendert_von`. Schreiboperationen am
   tatsächlichen Schema ausrichten; keine nicht vorhandenen Auditfelder annehmen.
-- [ ] Freigabe setzt `freigegeben_von` und `freigegeben_am` voraus. Verständliche
+- [x] Freigabe setzt `freigegeben_von` und `freigegeben_am` voraus. Verständliche
   Fehlerbehandlung und passende Bedienung vorsehen.
-- [ ] **Suche nach Dateinamen** in der Dokumentenverwaltung ergänzen. Ein eigenes
+- [x] **Suche nach Dateinamen** in der Dokumentenverwaltung ergänzen. Ein eigenes
   Dokumenttitelfeld existiert bisher nicht. Ein separates Titelfeld ist eine
   spätere, gesondert zu entscheidende Schemaerweiterung.
 
 ## Bekannte Grenzen zur späteren Revision
 
+- [ ] **Dokument-Verlauf fachlich entscheiden:** Im vorhandenen Schema werden
+  Dokumente, Freigabestatus und Zuordnungen nicht auditiert. Die Anwendung kann
+  dafür ohne Schemaergänzung keinen vollständigen Verlauf anbieten.
+- [ ] **Inhaltsversion und Änderungsstand trennen?** Im MVP dient `version` auch
+  der optimistischen Sperre: Statusänderungen erhöhen den Stand, ein neuer
+  Nachfolger startet mit Vorgängerstand + 1. Die Inhaltskette folgt Gruppe und
+  Vorgänger-ID, nicht einer strikt fortlaufenden Inhaltsversionsnummer. Falls
+  eine eigene fachliche Nummer benötigt wird, Schemaerweiterung planen.
+- [ ] **Externe Dokument-Schreiber berücksichtigen:** Direkte SQL-Änderungen
+  ohne Versionserhöhung umgehen den Schutz. Die Versionsgruppen-Sperre schützt
+  nur kooperierende Anwendungsschreiber.
+- [ ] **Maßnahmenabschluss abstimmen:** Abschlussdatum wird explizit gepflegt;
+  Statuswechsel ergänzen es nicht automatisch. Prüfen, ob künftig ein Pflichtfeld
+  oder eine automatische Vorbelegung gewünscht wird.
+- [ ] **Fälligkeit der Wirksamkeitsprüfung:** Es gibt bisher nur die
+  Umsetzungsfälligkeit. Ein eigenes Prüfdatum für Überfälligkeitswarnungen wäre
+  eine gesonderte Erweiterung.
 - [ ] **Teilnehmer-Verlauf fachlich entscheiden:** Das Schema auditiert
   Sitzungen und TOPs, aber keine Teilnehmer-Snapshots. Teilnehmeränderungen
   erhöhen über die Anwendung die Sitzungs-Version; die vollständigen alten und
@@ -62,6 +79,21 @@ Das bestehende SQL-Schema bleibt für den MVP maßgeblich.
 
 ## Noch ausstehende Verifikation
 
+- [ ] **Qt-Testprozess beim Beenden untersuchen (Python 3.14.10):** In der neu
+  eingerichteten `frontend/.venv` bestanden ohne gesetztes `QM_TEST_DSN` 19 Tests,
+  17 Datenbanktests wurden übersprungen. Danach meldete Qt
+  `shared QObject was deleted directly`; der Testprozess endete mit Code 139.
+  Lebensdauer/Aufräumen der Testwidgets und QApplication prüfen. Der separat
+  gestartete native Anwendungsprozess lief weiter; Hauptfenster und geladenes
+  Musterthema wurden sichtbar bestätigt. Das ist kein Nachweis eines fehlerfreien
+  Beendens der Anwendung selbst.
+
+- [ ] Öffnen verschiedener Dateitypen mit realen externen Programmen auf macOS
+  und Windows prüfen. Automatische Tests simulieren den Programmstart und prüfen
+  die temporäre Kopie sowie ihre Lebensdauer.
+- [ ] Bedienung mit größeren realistischen PDF-/Word-Dateien und Zeitbedarf bei
+  Upload/Download prüfen; diese Inhaltsformate werden unverändert als Bytes gespeichert.
+
 - [ ] Manuelle Durchsicht der Abläufe nach `frontend/PRUEFUNG.md`, insbesondere
   Speicherverhalten, Abbruch, Konflikthinweise und Bedienung der Tabellen.
 - [ ] Gleichzeitige Bearbeitung mit zwei getrennten Anwendungsfenstern bzw.
@@ -72,8 +104,21 @@ Das bestehende SQL-Schema bleibt für den MVP maßgeblich.
   Bisherige Datenbanktests liefen mit PostgreSQL 17.12 auf macOS.
 - [ ] Unterstützte Python-Versionen ab 3.10 samt passenden Abhängigkeiten
   verifizieren; die bisherigen Testläufe decken keine vollständige Versionsmatrix ab.
-- [ ] Vor dem späteren Abschluss des MVP einen durchgängigen Ablauf testen:
+- [x] Durchgängigen Ablauf automatisiert getestet:
   Thema → Sitzung/TOP → Beschluss → Maßnahme → Dokument → Verlauf.
+
+## Build und Auslieferung
+
+- [x] Cython-`setup.py` und zwei Einstiegsskripte angelegt: `bundle` (macOS)
+  sowie `bundle.bat` (Windows); Anleitung in `BUILD.md`.
+- [x] macOS-arm64-Build mit Python 3.14.10, Cython 3.3.1 und PyInstaller 6.22.3
+  erfolgreich. Offline-Selbsttest für übersetzte Module und fertiges `qm.app`
+  bestanden; zusätzlich alle 36 Tests gegen Cython-Module mit Testdatenbank bestanden.
+- [ ] Windows-Build auf einem 64-Bit-Windows-Rechner mit passenden MSVC Build
+  Tools durchführen und `qm.exe` auf einem Rechner ohne Python testen.
+- [ ] macOS-Bundle auf einem weiteren Ziel-Mac testen; Intel-Build bei Bedarf
+  separat erstellen. Developer-ID-Signierung/Notarisierung für Verteilung planen.
+- [ ] Eigenes QM-App-Icon und gegebenenfalls Windows-Code-Signierung ergänzen.
 
 ## Optionale Erweiterungen nach dem MVP
 
@@ -89,6 +134,9 @@ Das bestehende SQL-Schema bleibt für den MVP maßgeblich.
   zunächst ist der synchrone Upload/Download gemäß Plan vorgesehen.
 
 ## Bereits erledigt – nicht erneut als Fehler behandeln
+
+- [x] 36 Tests nach Schritt 5 bestanden; neue Testdatensätze wurden zurückgerollt.
+- [x] Maßnahmen- und Dokumentdialoge visuell im Offscreen-Modus kontrolliert.
 
 - [x] UUID-Auswahl in Themen-/Folgesitzungs-Comboboxen korrigiert und durch
   Bearbeitungs- und Vertagungstests abgesichert.
