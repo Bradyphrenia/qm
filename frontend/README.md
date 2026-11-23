@@ -27,6 +27,15 @@ Upload, Zuordnung, Download/Öffnen, Statuswechsel, Dateinamensuche und neue
 Versionen. Die Anwendung verändert das Datenbankschema nicht.
 Eine manuelle Prüfanleitung und die konkreten Speicherregeln stehen in `PRUEFUNG.md`.
 
+## Auslieferbares App-Bundle bauen
+
+Die [Buildanleitung](../BUILD.md) beschreibt Cython-/PyInstaller-Builds für
+macOS und Windows sowie die genauen Befehle für `frontend/.venv`.
+Dafür `requirements-build.txt` aus dem Projektordner installieren.
+Unter macOS wird ein vorhandenes `frontend/qm.icns` bevorzugt; ansonsten
+konvertiert Pillow das `.ico`-Icon. Bei `No module named 'PIL'` die
+[Icon-Fehlerbehebung](../BUILD.md#app-icon-und-fehler-no-module-named-pil) beachten.
+
 ## Installation und Start
 
 Im Projektverzeichnis eine eigene Umgebung für das Frontend erstellen.

@@ -118,7 +118,13 @@ Das bestehende SQL-Schema bleibt für den MVP maßgeblich.
   Tools durchführen und `qm.exe` auf einem Rechner ohne Python testen.
 - [ ] macOS-Bundle auf einem weiteren Ziel-Mac testen; Intel-Build bei Bedarf
   separat erstellen. Developer-ID-Signierung/Notarisierung für Verteilung planen.
-- [ ] Eigenes QM-App-Icon und gegebenenfalls Windows-Code-Signierung ergänzen.
+- [x] QM-Icon eingebunden: Windows verwendet `frontend/qm.ico`; macOS bevorzugt
+  `frontend/qm.icns`, falls vorhanden, sonst automatische Konvertierung mit Pillow.
+  Pillow ist als macOS-Buildabhängigkeit hinterlegt; die tatsächliche ICO→ICNS-
+  Konvertierung wurde unter Python 3.14.10 geprüft (siehe [BUILD.md](BUILD.md)).
+- [ ] Vollständigen macOS-Build nach der Iconkorrektur erneut ausführen und die
+  Darstellung des App-Icons im Finder/Dock visuell prüfen.
+- [ ] Gegebenenfalls Windows-Code-Signierung ergänzen.
 
 ## Optionale Erweiterungen nach dem MVP
 

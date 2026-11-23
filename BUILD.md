@@ -29,6 +29,34 @@ Ein anderer Interpreter kann über `QM_PYTHON=/absoluter/pfad/python ./bundle`
 gewählt werden. Gebaut wird für die Architektur des verwendeten Interpreters.
 Das komplette `.app`-Bundle weitergeben, nicht nur die Datei aus `Contents/MacOS`.
 
+### App-Icon und Fehler „No module named 'PIL'“
+
+Windows verwendet `frontend/qm.ico`. Für das macOS-Bundle erwartet PyInstaller
+`.icns`: `build_tools/build.py` bevorzugt dort `frontend/qm.icns`, sofern diese
+Datei vorhanden ist. Andernfalls wird `frontend/qm.ico` über Pillow automatisch
+in `.icns` konvertiert. Eine bloße Umbenennung der Datei genügt nicht.
+`frontend/qm.ico` bleibt auf beiden Plattformen als Qt-Laufzeitressource erforderlich.
+
+Fehlt Pillow, scheitert diese Konvertierung beim Erstellen des macOS-Bundles mit
+`ModuleNotFoundError: No module named 'PIL'` und anschließendem Formatfehler.
+Das zu installierende Paket heißt **Pillow**, der Python-Import heißt `PIL`.
+`requirements-build.txt` enthält deshalb `Pillow>=12; sys_platform == "darwin"`.
+Die Frontend-/Testabhängigkeiten allein reichen für den Build nicht aus.
+
+Für die vorhandene Python-3.14-Umgebung exakt denselben Interpreter zum
+Installieren und Bauen verwenden; die Umgebung muss nicht neu erstellt werden:
+
+```sh
+cd /Users/steffen/IdeaProjects/qm
+frontend/.venv/bin/python -m pip install -r requirements-build.txt
+frontend/.venv/bin/python -c "import sys, PIL; print(sys.executable); print(PIL.__version__)"
+frontend/.venv/bin/python build_tools/build.py --platform macos
+```
+
+Für die gezielte Reparatur genügt alternativ
+`frontend/.venv/bin/python -m pip install 'Pillow>=12'` vor dem erneuten Build.
+Für diesen Iconfehler ist kein Python-Downgrade erforderlich.
+
 ## Windows
 
 Voraussetzungen: 64-Bit-Python und passende Microsoft C++ Build Tools mit
@@ -104,6 +132,8 @@ Reverse Engineering. PyInstaller enthält weiterhin eine Python-Laufzeit.
 
 ## Hier verifizierter Stand
 
+### Bisheriger vollständiger Build
+
 macOS arm64, Python 3.14.10, Cython 3.3.1 und PyInstaller 6.22.3:
 Cython-Übersetzung, Offline-Selbsttest der nativen Module und Offline-Selbsttest
 des fertigen `qm.app` erfolgreich. Zusätzlich bestanden alle 36 vorhandenen
@@ -112,6 +142,16 @@ Mac nicht ausgeführt; `bundle.bat` muss auf Windows erprobt werden.
 
 Der PyInstaller-Cache liegt ebenfalls unter `build/`, damit `--clean` keine
 Caches anderer Projekte bereinigt.
+
+### Iconkorrektur vom 23. November 2026
+
+Pillow 13.0.0 wurde in `frontend/.venv` unter Python 3.14.10 installiert.
+Die tatsächliche Datei `frontend/qm.ico` wurde mit PyInstallers
+`normalize_icon_type` erfolgreich zu einer lesbaren ICNS-Datei (1024 × 1024)
+konvertiert. Syntaxprüfung von `build_tools/build.py` und `git diff --check`
+waren erfolgreich. Nach dieser Iconkorrektur wurde kein vollständiger
+Anwendungsbuild erneut ausgeführt; die obigen Bundle-/Datenbankprüfungen
+beschreiben den bisherigen Stand.
 
 ## Referenzen
 

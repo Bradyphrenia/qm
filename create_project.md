@@ -1,6 +1,6 @@
 # QM-Projekt – bisherige Entwicklung
 
-Stand: 21. November 2026
+Stand: 23. November 2026
 
 ## Infrastrukturstand vom 23. November 2026
 
@@ -70,6 +70,20 @@ prüfen sowohl die übersetzten Module als auch das fertige Bundle.
 Alle 36 Anwendungstests bestanden auch mit den Cython-Modulen und PostgreSQL;
 automatisch erzeugte Testdatensätze wurden zurückgerollt.
 
+### macOS-Iconkorrektur vom 23. November 2026
+
+Der macOS-Build scheiterte beim Konvertieren von `frontend/qm.ico`, weil in
+`frontend/.venv` Pillow fehlte (`No module named 'PIL'`). PyInstaller benötigt
+für das App-Bundle `.icns`. Die gemeinsame Buildlogik bevorzugt nun eine
+vorhandene `frontend/qm.icns` und verwendet andernfalls die automatische
+ICO→ICNS-Konvertierung. Pillow ist als macOS-Abhängigkeit in
+`requirements-build.txt` eingetragen; das `.ico` bleibt Qt-Laufzeitressource.
+
+Pillow 13.0.0 wurde unter Python 3.14.10 installiert und die Konvertierung des
+vorhandenen Icons erfolgreich geprüft. Ein vollständiger Build wurde nach
+dieser Korrektur noch nicht erneut ausgeführt. Befehle und Fehlerbehebung
+stehen in [BUILD.md](BUILD.md).
+
 ## Verbleibende Grenzen und nächste Schritte
 
 - Manuelle fachliche Abnahme sowie Windows-Build und Windows-Bedienung stehen aus.
@@ -87,8 +101,8 @@ automatisch erzeugte Testdatensätze wurden zurückgerollt.
 - Eine Qt-Auffälligkeit beim Beenden eines separaten Python-Testlaufs ist in der
   TODO-Liste festgehalten. Die erfolgreichen Cython-/Bundle-Prüfungen ersetzen
   nicht die weitere Untersuchung dieses Testabschlusses.
-- Signierung/Notarisierung, ein eigenes App-Icon und Tests auf weiteren
-  Zielrechnern sind vor einer breiteren Verteilung zu prüfen.
+- Signierung/Notarisierung, die Darstellung des eingebundenen App-Icons und
+  Tests auf weiteren Zielrechnern sind vor einer breiteren Verteilung zu prüfen.
 
 Weitere Details: `TODO.md`, `frontend/README.md`, `frontend/PRUEFUNG.md` und
 `BUILD.md`. Das Prothesen-Projekt wurde nur als Buildvorbild gelesen und nicht verändert.
