@@ -93,7 +93,7 @@ def main():
     command = [sys.executable, '-m', 'PyInstaller', '--noconfirm', '--clean',
                '--windowed', '--name', 'qm', '--noupx', '--paths', STAGE,
                '--distpath', ROOT / 'dist', '--workpath', BUILD / 'pyinstaller',
-               '--specpath', specdir, '--exclude-module', 'tkinter']
+               '--specpath', specdir, '--exclude-module', 'tkinter', '--icon', 'C:\\Users\\chir-arzt\\Documents\\qm\\frontend\\qm.ico']
     # A directory-backed .app is the robust macOS bundle format. Windows has a
     # single executable, matching the requested distribution format.
     command.append('--onedir' if args.platform == 'macos' else '--onefile')
