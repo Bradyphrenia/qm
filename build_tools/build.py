@@ -91,11 +91,14 @@ def main():
         return
     specdir = BUILD / 'spec'
     specdir.mkdir(parents=True, exist_ok=True)
+    icon = FRONTEND / 'qm.ico'
+    if args.platform == 'macos' and (FRONTEND / 'qm.icns').is_file():
+        icon = FRONTEND / 'qm.icns'
     command = [sys.executable, '-m', 'PyInstaller', '--noconfirm', '--clean',
                '--windowed', '--name', 'qm', '--noupx', '--paths', STAGE,
                '--distpath', ROOT / 'dist', '--workpath', BUILD / 'pyinstaller',
                '--specpath', specdir, '--exclude-module', 'tkinter',
-               '--icon', ROOT / 'frontend' / 'qm.ico',
+               '--icon', icon,
                '--add-data', str(STAGE / 'qm.ico') + os.pathsep + '.']
     # A directory-backed .app is the robust macOS bundle format. Windows has a
     # single executable, matching the requested distribution format.
