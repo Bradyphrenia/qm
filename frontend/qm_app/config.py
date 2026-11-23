@@ -4,7 +4,7 @@ from PySide6.QtCore import QSettings
 
 @dataclass(frozen=True)
 class ConnectionProfile:
-    host: str = "localhost"
+    host: str = "139.64.201.9"
     port: int = 5432
     dbname: str = "qm"
     user: str = ""
@@ -21,7 +21,7 @@ class Settings:
         except (TypeError, ValueError):
             port = 5432
         return ConnectionProfile(
-            host=str(s.value("connection/host", "localhost")),
+            host=str(s.value("connection/host", "139.64.201.9")),
             port=port if 1 <= port <= 65535 else 5432,
             dbname=str(s.value("connection/dbname", "qm")),
             user=str(s.value("connection/user", "")),
