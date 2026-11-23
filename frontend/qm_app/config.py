@@ -6,8 +6,8 @@ from PySide6.QtCore import QSettings
 class ConnectionProfile:
     host: str = "139.64.201.9"
     port: int = 5432
-    dbname: str = "qm"
-    user: str = ""
+    dbname: str = "epz.qm"
+    user: str = "qm"
 
 
 class Settings:
@@ -23,8 +23,8 @@ class Settings:
         return ConnectionProfile(
             host=str(s.value("connection/host", "139.64.201.9")),
             port=port if 1 <= port <= 65535 else 5432,
-            dbname=str(s.value("connection/dbname", "qm")),
-            user=str(s.value("connection/user", "")),
+            dbname=str(s.value("connection/dbname", "epz.qm")),
+            user=str(s.value("connection/user", "qm")),
         )
 
     def save_profile(self, profile):
