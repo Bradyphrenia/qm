@@ -10,6 +10,7 @@ import os
 def run():
     os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
     from PySide6.QtWidgets import QApplication
+    from main import application_icon_path, configure_application
     from qm_app.models import Thema, Massnahme
     from qm_app.config import ConnectionProfile
     from qm_app.ui.main_window import MainWindow
@@ -38,6 +39,9 @@ def run():
             return ConnectionProfile()
 
     application = QApplication.instance() or QApplication([])
+    configure_application(application)
+    assert application_icon_path().is_file()
+    assert not application.windowIcon().isNull()
     db = OfflineDB()
     topic = Thema(titel='Build-Test', kategorie='Test', erstellt_von=db.user)
     assert replace(topic, titel='Geändert').titel == 'Geändert'

@@ -2,6 +2,21 @@
 
 Stand: 21. November 2026
 
+## Infrastrukturstand vom 23. November 2026
+
+Das QM-Modul wurde aus der Datenbank `epz` in die eigenständige Datenbank `qm`
+überführt. Das gleichnamige Schema enthält elf Tabellen. Die frühere Struktur
+unter `epz.qm` bleibt vorerst als Rückfallmöglichkeit bestehen.
+
+Die Eigentümerrolle `qm_owner` kann sich nicht anmelden. Die ebenfalls nicht
+anmeldbare Gruppenrolle `qm_app` bündelt die minimalen Anwendungsrechte. Der
+Login `qm` besitzt keine direkten Tabellenrechte mehr und erbt den Zugriff als
+Mitglied von `qm_app`. Das Auditlog ist für die Anwendung nur lesbar.
+
+Das Frontend verwendet als Datenbanknamen `qm`; der Standardhost lautet unter
+Windows `139.64.201.9` und unter macOS `localhost`. Alte gespeicherte Werte
+`epz` beziehungsweise `epz.qm` werden automatisch auf `qm` umgestellt.
+
 ## Ausgangspunkt und Architektur
 
 Das Projekt enthielt zunächst die fachliche Planung, die Schemadokumentation
@@ -11,8 +26,9 @@ und `SQL/generate_schema.sql`. Grundlage der Umsetzung war der vorhandene Plan
 Darauf wurde unter `frontend/` eine Desktopanwendung mit Python und PySide6
 aufgebaut. Der Datenbankzugriff erfolgt mit psycopg2 und handgeschriebenem SQL
 in einer Repository-Schicht, getrennt von Datenmodellen und Oberfläche.
-Das bestehende PostgreSQL-Schema `qm` wurde nicht verändert; getestet wurde
-gegen die lokale Datenbank `epz` mit PostgreSQL 17.12.
+Während der ursprünglichen Frontendentwicklung wurde das bestehende
+PostgreSQL-Schema `qm` nicht verändert; getestet wurde damals gegen die lokale
+Datenbank `epz` mit PostgreSQL 17.12.
 
 ## Umgesetzte Funktionen
 

@@ -1,13 +1,44 @@
 import sys
+from pathlib import Path
+
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication, QDialog
 from qm_app.ui.login_dialog import LoginDialog
 from qm_app.ui.main_window import MainWindow
 
 
-def main():
-    app = QApplication(sys.argv)
+WINDOWS_APP_USER_MODEL_ID = "de.steffentroeger.qm"
+
+
+def application_icon_path():
+    """Return the icon both from source and a PyInstaller one-file bundle."""
+    bundle_dir = getattr(sys, "_MEIPASS", None)
+    base_dir = Path(bundle_dir) if bundle_dir else Path(__file__).resolve().parent
+    return base_dir / "qm.ico"
+
+
+def set_windows_app_user_model_id():
+    """Give Windows a stable identity for taskbar grouping and icon lookup."""
+    if sys.platform != "win32":
+        return
+    import ctypes
+    ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(
+        WINDOWS_APP_USER_MODEL_ID
+    )
+
+
+def configure_application(app):
     app.setOrganizationName("QM")
     app.setApplicationName("QM Desktop")
+    icon_path = application_icon_path()
+    if icon_path.is_file():
+        app.setWindowIcon(QIcon(str(icon_path)))
+
+
+def main():
+    set_windows_app_user_model_id()
+    app = QApplication(sys.argv)
+    configure_application(app)
     # Closing the login must not terminate the main window's event loop.
     app.setQuitOnLastWindowClosed(False)
     login = LoginDialog()

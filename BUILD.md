@@ -66,6 +66,9 @@ nicht benötigt; PostgreSQL wird nicht mitgeliefert und muss erreichbar sein.
 4. PyInstaller verpackt ausschließlich aus dem Staging-Verzeichnis. Die Imports
    der Cython-Module werden zuvor aus dem Quellcode ermittelt und als Hidden
    Imports übergeben. So bleiben etwa Qt, Dataclasses und psycopg2 erreichbar.
+   Das QM-Icon wird zusätzlich als Laufzeitressource verpackt, von Qt als
+   Anwendungsicon gesetzt und unter Windows mit einer festen AppUserModelID
+   verbunden. Dadurch verwenden auch Fenster und Taskleiste das QM-Icon.
 5. Das fertige Bundle wird erneut mit `--smoke-test` geprüft. Ein Fehler bricht
    den Build ab. Dieser Test benutzt keine Datenbank und keine Zugangsdaten.
 
@@ -96,8 +99,7 @@ Reverse Engineering. PyInstaller enthält weiterhin eine Python-Laufzeit.
   Für die Verteilung an andere Macs Signierung/Notarisierung separat vorsehen.
 - Windows-Build, SmartScreen/Signierung und Start auf einem Rechner ohne
   Entwicklungsumgebung müssen auf Windows geprüft werden.
-- Ein eigenes Icon ist noch nicht festgelegt. Das fremde Prothesen-Icon wird
-  deshalb nicht übernommen.
+- Der Windows-Build verwendet das projektspezifische Icon `frontend/qm.ico`.
 - Beim Verteilen die Lizenzen der gebündelten Bibliotheken berücksichtigen.
 
 ## Hier verifizierter Stand

@@ -49,11 +49,23 @@ frontend/.venv/Scripts/python.exe frontend/main.py
 ```
 
 Für den reinen Betrieb genügt `requirements.txt`.
-Im Login Host, Port, Datenbank, Benutzer und Passwort eintragen. Das Schema
-`qm` muss bereits vorhanden sein. Die Anwendung erstellt oder verändert keine
-Tabellen. Der Login prüft die Verbindung und das Vorhandensein von `qm.thema`.
+Die Anwendung verwendet standardmäßig Port `5432`, Datenbank `qm` und Benutzer
+`qm`. Unter Windows ist der Standardhost `139.64.201.9`, unter macOS
+`localhost`. Alte gespeicherte Datenbankwerte `epz` und `epz.qm` werden beim
+Laden auf `qm` normalisiert. Im Login können Host, Port, Datenbank und Benutzer
+bei Bedarf geändert werden.
+
+Die Datenbank und das Schema `qm` müssen bereits vorhanden sein. Die Anwendung
+erstellt oder verändert keine Tabellen. Der Login prüft die Verbindung und das
+Vorhandensein von `qm.thema`.
 Das Passwort wird nicht in QSettings gespeichert; erfolgreich verwendete
 Verbindungsdaten ohne Passwort werden lokal gespeichert.
+
+Die Anmelderolle `qm` besitzt keine Datenbankobjekte und keine direkten
+Tabellenrechte. Sie erbt die benötigten Rechte von der nicht anmeldbaren
+Gruppenrolle `qm_app`; Eigentümer der Objekte ist `qm_owner`. Weitere Benutzer
+werden ebenfalls `qm_app` zugeordnet und erhalten in der Datenbank `qm` den
+Suchpfad `qm, pg_catalog`.
 
 ## Tests
 
@@ -81,7 +93,10 @@ Test simuliert; Dateiexport und temporäre Dateien werden tatsächlich geprüft.
 
 Repository-Operationen verwenden `Database.transaction()`; zusammengehörige
 Schreibvorgänge teilen sich einen Cursor. Transaktionen nicht verschachteln.
-Für Auditfelder gilt `Database.user` (vom Server ermittelter `current_user`).
+Für fachliche Benutzerfelder gilt `Database.user` (vom Server ermittelter
+`current_user`). Der Datenbank-Audittrigger verwendet `session_user`, damit bei
+der Ausführung als geschützte Eigentümerfunktion der tatsächlich angemeldete
+Benutzer protokolliert wird.
 Versionskonflikte werden durch `UPDATE ... WHERE id = %s AND version = %s`
 und Prüfung von `rowcount` erkannt. Dokumente werden zusätzlich je Versionsgruppe
 mit einer transaktionsgebundenen PostgreSQL-Advisory-Sperre serialisiert.

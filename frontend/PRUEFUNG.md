@@ -8,9 +8,10 @@ wurde nicht verändert.
 
 ## Manuell ausprobieren
 
-1. Anwendung nach README starten und mit `localhost`, Port `5432`, Datenbank
-   `epz` und dem vereinbarten Datenbankbenutzer anmelden. Das Passwort im Login
-   eingeben; es wird nicht im Verbindungsprofil gespeichert.
+1. Anwendung nach README starten. Unter Windows den Standardhost
+   `139.64.201.9`, unter macOS `localhost`, Port `5432`, Datenbank `qm` und den
+   Benutzer `qm` verwenden. Das Passwort im Login eingeben; es wird nicht im
+   Verbindungsprofil gespeichert.
 2. Unter **Themen** das vorhandene Musterthema suchen. Stammdaten und Verlauf
    öffnen. Für eigene Versuche ein neues, ausdrücklich als Test gekennzeichnetes
    Thema verwenden.
@@ -127,8 +128,9 @@ Prüfsummen, Versionen, Zuordnungen und den Datenbank-Löschschutz.
 Auch der durchgängige Weg vom Thema über den TOP zur Maßnahme und ihrem Dokument
 ist geprüft. Das Öffnen externer Programme wird simuliert; temporäre Dateikopien
 und Dateiexport werden tatsächlich geprüft. Die Tests liefen
-gegen die lokale PostgreSQL-17-Datenbank `epz`; die Fensterprüfungen liefen im
-Qt-Offscreen-Modus auf macOS. Windows und PostgreSQL 10 wurden nicht getestet.
+historisch gegen die lokale PostgreSQL-17-Datenbank `epz`; die Fensterprüfungen
+liefen im Qt-Offscreen-Modus auf macOS. Der aktuelle Produktivpfad verwendet die
+eigenständige Datenbank `qm`. Windows und PostgreSQL 10 wurden nicht getestet.
 
 Die Tests erstellen keine Datenbankstrukturen. Mit gesetztem `QM_TEST_DSN`
 verwenden sie das vorhandene Schema und rollen ihre neuen Datensätze zurück.

@@ -2,7 +2,9 @@
 
 ## 1. Zielbild und fachlicher Rahmen
 
-Das bestehende EPZ verwendet PostgreSQL. Das Qualitätsmanagement wird als neues, logisch eigenständiges Modul im Schema `qm` derselben Datenbank aufgebaut.
+Das bestehende EPZ verwendet PostgreSQL. Das Qualitätsmanagement wird als
+logisch und technisch eigenständiges Modul in der eigenen Datenbank `qm` mit
+dem gekapselten Schema `qm` betrieben. Der Bezug zum EPZ bleibt lose.
 
 Das Modul ist allgemein für folgende Inhalte vorgesehen:
 
@@ -60,7 +62,8 @@ Die Prüfsumme kann als `BYTEA` gespeichert oder mit `encode(..., 'hex')` als He
 ## 3. Architekturgrundsätze
 
 - PostgreSQL bleibt das zentrale Datenbanksystem.
-- Das QM-Modul befindet sich im eigenen Schema `qm`.
+- Das QM-Modul befindet sich in der eigenen Datenbank `qm` und dort im eigenen
+  Schema `qm`.
 - Tabellen, Constraints, Indizes, Funktionen und Rollen werden möglichst innerhalb dieses Schemas gekapselt.
 - Die Kopplung an das bestehende EPZ-Modell wird auf das notwendige Minimum begrenzt.
 - Primärschlüssel sollen systemübergreifend stabile Identifikatoren verwenden, vorzugsweise UUIDs.
@@ -272,14 +275,18 @@ Das Auditlog wird über PostgreSQL-10-kompatible Funktionen und Trigger befüllt
 
 Das Modul kann medizinische und personenbezogene Daten enthalten. Es gilt das Prinzip der minimal erforderlichen Berechtigung.
 
-Konzeptionell vorgesehene Rollen:
+Technisch umgesetzte Rollen:
 
-- reine Leseberechtigung,
-- QM-Bearbeitung,
-- Sitzungs- und Protokollverantwortung,
-- Freigabe von Dokumenten und Abschlüssen,
-- Administration ohne unnötigen Zugriff auf fachliche Inhalte,
-- technische Anwendungsrolle.
+- `qm_owner`: Eigentümerrolle ohne Anmeldung,
+- `qm_app`: gemeinsame Anwendungsrolle ohne Anmeldung und ohne administrative
+  Rechte,
+- `qm`: abgesicherte Anmelderolle; erhält ihre Anwendungsrechte ausschließlich
+  über die Mitgliedschaft in `qm_app`.
+
+`qm_app` darf die zehn operativen Tabellen lesen und ändern. Das unveränderliche
+Auditlog `qm.verlauf` ist nur lesbar. Neue persönliche Logins werden ohne
+administrative Rechte angelegt, `qm_app` zugeordnet und erhalten für die
+Datenbank `qm` den Suchpfad `qm, pg_catalog`.
 
 Zu berücksichtigen sind:
 
@@ -295,11 +302,14 @@ Zu berücksichtigen sind:
 - datenschutzgerechte Testdaten,
 - geregelte Exporte und Akteneinsicht.
 
-Offen sind das endgültige Rollenmodell, der konkrete Einsatz von Row-Level Security, der Umfang eines Lesezugriffsprotokolls sowie Aufbewahrungs- und Löschfristen.
+Offen bleiben fachlich differenzierte Benutzergruppen, der konkrete Einsatz von
+Row-Level Security, der Umfang eines Lesezugriffsprotokolls sowie Aufbewahrungs-
+und Löschfristen. Das technische Basisrollenmodell ist umgesetzt.
 
 ## 8. Migration und spätere Auskopplung
 
-Das Schema `qm` soll später in eine eigenständige Datenbank überführt werden können.
+Das Schema `qm` wurde in die eigenständige Datenbank `qm` überführt. Das frühere
+Schema in der Datenbank `epz` bleibt vorerst als Rückfallmöglichkeit erhalten.
 
 Dafür gelten folgende Leitlinien:
 
@@ -409,7 +419,7 @@ Bei einer späteren Auskopplung ist außerdem zu entscheiden, ob Fallstammdaten 
 - Deduplizierung anhand der Prüfsumme,
 - maximale Dateigröße und erlaubte Dateitypen,
 - Volltextsuche in Metadaten oder Dokumentinhalten,
-- Rollenmodell einschließlich Row-Level Security,
+- fachliche Verfeinerung des Rollenmodells einschließlich Row-Level Security,
 - Umfang des Lesezugriffsprotokolls,
 - Aufbewahrungs-, Archivierungs- und Löschfristen,
 - Exporte, Berichte und Schnittstellen,
@@ -418,7 +428,10 @@ Bei einer späteren Auskopplung ist außerdem zu entscheiden, ob Fallstammdaten 
 
 ## 11. Zusammenfassung
 
-Das QM-Modul wird als fachlich eigenständiges Schema `qm` innerhalb der bestehenden EPZ-Datenbank aufgebaut. Sein Kern besteht aus Themen, Sitzungen, der m:n-Zuordnung Besprechung, Maßnahmen, versionierten Dokumenten mit `BYTEA`, relationalen Dokumentzuordnungen und einem unveränderlichen Verlauf.
+Das QM-Modul wird in der eigenständigen Datenbank `qm` und dem gleichnamigen
+Schema betrieben. Sein Kern besteht aus Themen, Sitzungen, der m:n-Zuordnung
+Besprechung, Maßnahmen, versionierten Dokumenten mit `BYTEA`, relationalen
+Dokumentzuordnungen und einem unveränderlichen Verlauf.
 
 Der EPZ-Fallbezug bleibt optional. Datenintegrität, Wiederaufnahme, Prüfsummen, Berechtigungen, Datenschutz und spätere Auskopplung werden bereits beim Datenbankentwurf berücksichtigt.
 

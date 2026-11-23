@@ -363,7 +363,9 @@ BEGIN
     ELSIF TG_OP = 'DELETE' THEN
         v_event := 'DELETE';
         v_entity_id := OLD.id::TEXT;
-        v_user := current_user;
+        -- SECURITY DEFINER changes current_user to the function owner. Keep the
+        -- authenticated application role in the audit record instead.
+        v_user := session_user;
         v_old_data := to_jsonb(OLD);
     END IF;
 
@@ -391,7 +393,9 @@ BEGIN
 
     RETURN COALESCE(NEW, OLD);
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, qm;
 
 -- Attach audit triggers to core tables
 CREATE TRIGGER trg_thema_audit

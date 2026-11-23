@@ -82,6 +82,7 @@ def main():
         dest.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(path, dest)
     shutil.copy2(FRONTEND / 'main.py', STAGE / 'main.py')
+    shutil.copy2(FRONTEND / 'qm.ico', STAGE / 'qm.ico')
     for name in ('launcher.py', 'smoke_test.py'):
         shutil.copy2(ROOT / 'build_tools' / name, STAGE / name)
     smoke([sys.executable, STAGE / 'launcher.py', '--smoke-test'], STAGE)
@@ -93,7 +94,9 @@ def main():
     command = [sys.executable, '-m', 'PyInstaller', '--noconfirm', '--clean',
                '--windowed', '--name', 'qm', '--noupx', '--paths', STAGE,
                '--distpath', ROOT / 'dist', '--workpath', BUILD / 'pyinstaller',
-               '--specpath', specdir, '--exclude-module', 'tkinter', '--icon', 'C:\\Users\\chir-arzt\\Documents\\qm\\frontend\\qm.ico']
+               '--specpath', specdir, '--exclude-module', 'tkinter',
+               '--icon', ROOT / 'frontend' / 'qm.ico',
+               '--add-data', str(STAGE / 'qm.ico') + os.pathsep + '.']
     # A directory-backed .app is the robust macOS bundle format. Windows has a
     # single executable, matching the requested distribution format.
     command.append('--onedir' if args.platform == 'macos' else '--onefile')

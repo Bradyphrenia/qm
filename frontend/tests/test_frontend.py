@@ -7,7 +7,7 @@ import pytest
 from PySide6.QtCore import QSettings, QSortFilterProxyModel, Qt
 from PySide6.QtWidgets import QDialog, QMessageBox
 
-from qm_app.config import ConnectionProfile, Settings
+from qm_app.config import ConnectionProfile, Settings, default_database_host
 from qm_app.db import ConcurrencyError, Database, DatabaseError
 from qm_app.ui.login_dialog import LoginDialog
 from qm_app.ui.main_window import MainWindow
@@ -16,6 +16,19 @@ from qm_app.ui.table_model import Column, TableModel
 
 def settings_at(tmp_path):
     return Settings(QSettings(str(tmp_path / 'settings.ini'), QSettings.Format.IniFormat))
+
+
+def test_platform_specific_database_host_defaults():
+    assert default_database_host('win32') == '139.64.201.9'
+    assert default_database_host('darwin') == 'localhost'
+    assert ConnectionProfile().dbname == 'qm'
+
+
+def test_legacy_database_and_schema_setting_is_normalized(tmp_path):
+    for legacy_name in ('epz', 'epz.qm'):
+        settings = settings_at(tmp_path / legacy_name.replace('.', '_'))
+        settings.settings.setValue('connection/dbname', legacy_name)
+        assert settings.load_profile().dbname == 'qm'
 
 
 def test_login_and_navigation(app, tmp_path):

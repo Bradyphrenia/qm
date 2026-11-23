@@ -1,12 +1,20 @@
-# Projektdokumentation: PostgreSQL-Datenbankschema `qm`
+# Projektdokumentation: PostgreSQL-Datenbank und Schema `qm`
 
-Diese Dokumentation beschreibt die Struktur, Tabellen, Felder, Datentypen, Constraints sowie alle Fremdschlüssel- und Beziehungsstrukturen des Datenbankschemas `qm` für das Qualitätsmanagement-Modul (basierend auf `Planung_QM_Modul.md` und `SQL/generate_schema.sql`).
+Diese Dokumentation beschreibt die eigenständige PostgreSQL-Datenbank `qm` und
+das darin gekapselte Schema `qm` für das Qualitätsmanagement-Modul. Grundlage
+sind `Planung_QM_Modul.md`, `SQL/generate_schema.sql`,
+`SQL/create_qm_database.sql` und `SQL/configure_qm_role.sql`.
 
 ---
 
 ## 1. Gesamtarchitektur und Design-Prinzipien
 
 - **Schema-Kapselung**: Alle Tabellen, Funktionen, Trigger, Indizes und Erweiterungen (`pgcrypto`) sind vollständig im Schema `qm` gekapselt. Es existieren keine harten Abhängigkeiten oder Fremdschlüssel zum Schema `public` oder anderen Schemata.
+- **Eigene Datenbank**: Das QM-Modul läuft in der eigenständigen Datenbank `qm`.
+  Das frühere Schema `epz.qm` bleibt vorerst nur als Rückfallmöglichkeit bestehen.
+- **Getrennte Rollen**: `qm_owner` besitzt die Datenbankobjekte, `qm_app` bündelt
+  die Anwendungsrechte ohne eigene Anmeldung und der Login `qm` erbt diese Rechte
+  als Mitglied von `qm_app`.
 - **Kompatibilität**: Vollständig kompatibel mit PostgreSQL 10.10+ (Windows 64-Bit).
 - **Primärschlüssel**: Durchgängig UUIDs (erzeugt via `qm.gen_random_uuid()`), ausgenommen das Auditlog `qm.verlauf` (`BIGSERIAL`).
 - **Auditierung & Revisionssicherheit**: Zentrale, unveränderliche Audit-Tabelle `qm.verlauf` mit JSONB-Snapshot-Erfassung bei `INSERT`, `UPDATE` und `DELETE`.
@@ -349,4 +357,29 @@ Alle Indizes sind als Standard-B-Tree bzw. partielle Indizes umgesetzt, um optim
 ## 6. Migrations- und Auskopplungsfähigkeit
 
 - **Entkopplung**: Die externe Fallreferenz `epz_fall_id` in `qm.thema` ist absichtlich als `VARCHAR(100)` ohne Fremdschlüsselbindung implementiert.
-- **Eigenständigkeit**: Das Modul `qm` kann per `pg_dump -n qm` jederzeit ohne strukturelle Abhängigkeiten exportiert und in eine eigenständige Datenbank überführt werden. Allfällige Fallprüfungen können über API-/Service-Schichten oder lose Synchronisation realisiert werden.
+- **Umgesetzte Auskopplung**: Das Schema wurde in die eigene Datenbank `qm`
+  überführt. Allfällige Fallprüfungen können über API-/Service-Schichten oder
+  lose Synchronisation realisiert werden.
+- **Reproduzierbarkeit**: `SQL/create_qm_database.sql` erstellt Datenbank und
+  Basisrollen, `SQL/generate_schema.sql` die Objekte und
+  `SQL/configure_qm_role.sql` die minimalen Anwendungsrechte.
+
+---
+
+## 7. Rollen- und Berechtigungskonzept
+
+- `qm_owner`: Rolle ohne Anmeldung; Eigentümer von Schema, Tabellen, Sequenz
+  und anwendungseigenen Funktionen.
+- `qm_app`: Rolle ohne Anmeldung und ohne administrative Rechte; besitzt nur
+  Verbindungs-, Schema-, Tabellen- und Funktionsrechte für den App-Betrieb.
+- `qm`: Anmelderolle ohne administrative Rechte; Mitglied von `qm_app` und ohne
+  direkte Tabellenrechte.
+- Die zehn operativen Tabellen dürfen über `qm_app` gelesen und geändert werden.
+  `qm.verlauf` ist für Anwendungsnutzer ausschließlich lesbar.
+- Die Auditfunktion läuft mit den Rechten von `qm_owner`, festem Suchpfad und
+  protokolliert über `session_user` den tatsächlich angemeldeten Benutzer.
+- Weitere Benutzer erhalten dieselben Rechte durch Mitgliedschaft in `qm_app`;
+  ihr datenbankspezifischer Suchpfad muss auf `qm, pg_catalog` gesetzt werden.
+- Andere Datenbanken gewähren Verbindungen teilweise allgemein über `PUBLIC`.
+  Eine vollständige Verbindungsisolation würde koordinierte `PUBLIC`-Änderungen
+  oder eine gezielte Regel in `pg_hba.conf` erfordern.
