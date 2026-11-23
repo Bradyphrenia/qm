@@ -1,1 +1,13 @@
-/frontend/.venv
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+.env
+.env.*
+!.env.example
+
+# Cython / PyInstaller
+/build/
+/dist/
+*.egg-info/
