@@ -14,7 +14,9 @@ from qm_app.repositories.sitzung_repo import SitzungRepository
 from qm_app.repositories.besprechung_repo import BesprechungRepository
 from qm_app.repositories.massnahme_repo import MassnahmeRepository
 from qm_app.repositories.dokument_repo import DokumentRepository,ENTITIES
+from qm_app.repositories.dokument_repo import DocumentSnapshot
 from qm_app.repositories.verlauf_repo import VerlaufRepository
+from qm_app.document_working_copy import WorkingCopyManager
 from qm_app.ui.massnahme_dialog import MassnahmeDialog
 from qm_app.ui.massnahme_view import MassnahmeModel,MassnahmeFilter,overdue
 from qm_app.ui.table_model import Column
@@ -106,14 +108,16 @@ def test_document_upload_download_all_links_and_versions(database,workflow):
             c.execute('DELETE FROM qm.dokument WHERE id=%s',(id,))
     next_id=repo.new_version(id,released.version,'Muster_v2.bin','application/octet-stream',b'next')
     successor=repo.get(next_id)
+    archived=repo.get(id)
+    assert archived.status=='archiviert' and archived.version==released.version+1
     assert successor.vorgaenger_dokument_id==id
     assert successor.dokument_gruppe_id==doc.dokument_gruppe_id
-    assert successor.version==released.version+1 and successor.status=='entwurf'
+    assert successor.version==archived.version+1 and successor.status=='entwurf'
     assert successor.freigegeben_von is None
     for entity in ENTITIES:
         assert next_id in {d.id for d in repo.list(entity,workflow[entity])}
     with pytest.raises(DatabaseError,match='Nachfolgeversion'):
-        repo.new_version(id,released.version,'branch.txt','text/plain',b'no')
+        repo.new_version(id,archived.version,'branch.txt','text/plain',b'no')
     assert repo.download(id)[1]==payload
     repo.unlink(next_id,'thema',workflow['thema'])
     assert next_id not in {d.id for d in repo.list('thema',workflow['thema'])}
@@ -123,7 +127,7 @@ def test_document_upload_download_all_links_and_versions(database,workflow):
         repo.get(next_id)
 
 
-def test_document_transaction_rollback_and_limits(database,workflow):
+def test_document_transaction_rollback_and_limits(database,workflow,monkeypatch):
     repo=DokumentRepository(database)
     before={d.id for d in repo.list()}
     with pytest.raises(DatabaseError):
@@ -134,13 +138,32 @@ def test_document_transaction_rollback_and_limits(database,workflow):
     with pytest.raises(DatabaseError):
         repo.upload('bad.txt','text/plain',b'x','untrusted; DROP TABLE',workflow['thema'])
     assert {d.id for d in repo.list()}==before
+    id=repo.upload('checksum.txt','text/plain',b'original','thema',workflow['thema'])
+    original=repo.get(id)
+    with pytest.raises(ConcurrencyError):
+        repo.new_version(id,original.version,'changed.txt','text/plain',b'changed',expected_checksum=b'wrong')
+    assert repo.get(id).status=='entwurf'
+    assert repo.download(id)[1]==b'original'
+    original_table=repo.table
+    def failing_table(entity):
+        if entity=='massnahme':
+            raise DatabaseError('Zuordnung konnte nicht kopiert werden.')
+        return original_table(entity)
+    monkeypatch.setattr(repo,'table',failing_table)
+    with pytest.raises(DatabaseError,match='Zuordnung'):
+        repo.new_version(id,original.version,'changed.txt','text/plain',b'changed',
+            expected_checksum=original.pruefsumme_sha256)
+    assert repo.get(id).status=='entwurf'
+    assert repo.download(id)[1]==b'original'
 
 
 def test_legacy_document_without_group(database,workflow):
     repo=DokumentRepository(database)
-    id=repo.upload('legacy.txt','text/plain',b'old','thema',workflow['thema'])
+    id=uuid4()
     with database.transaction() as c:
-        c.execute('UPDATE qm.dokument SET dokument_gruppe_id=NULL WHERE id=%s',(id,))
+        c.execute('''INSERT INTO qm.dokument (id,dateiname,mime_type,inhalt,erstellt_von)
+            VALUES (%s,%s,%s,%s,%s)''',(id,'legacy.txt','text/plain',b'old',database.user))
+    repo.link(id,'thema',workflow['thema'])
     child=repo.new_version(id,1,'new.txt','text/plain',b'new')
     assert repo.get(child).dokument_gruppe_id==id
 
@@ -175,6 +198,18 @@ def test_local_files_and_upload_limit(tmp_path):
     assert settings.upload_limit_mb()==25
     settings.save_upload_limit(5)
     assert settings.upload_limit_mb()==5
+
+
+def test_working_copy_detects_content_changes(app):
+    payload=b'original'
+    snapshot=DocumentSnapshot(uuid4(),3,'Arbeitskopie.txt','text/plain',hashlib.sha256(payload).digest(),payload)
+    manager=WorkingCopyManager()
+    copy=manager.create(snapshot)
+    assert manager.read_if_changed(copy,1024) is None
+    copy.path.write_bytes(b'changed')
+    assert manager.read_if_changed(copy,1024)==b'changed'
+    manager.discard(snapshot.id)
+    assert manager.get(snapshot.id) is None
 
 
 def test_measure_dialog_real_save(app,database,workflow):
@@ -234,9 +269,8 @@ def test_document_open_retains_temporary_copy(app,database,workflow,monkeypatch)
     widget.open_document()
     widget.close()
     assert Path(urls[0].toLocalFile()).read_bytes()==b'open payload'
-    for directory in app.qm_open_document_dirs:
-        directory.remove()
-    app.qm_open_document_dirs=[]
+    assert app.qm_working_copy_manager.get(id) is not None
+    app.qm_working_copy_manager.discard(id)
 
 
 def test_measure_dialog_conflict_reloads(app,database,workflow,monkeypatch):
@@ -271,4 +305,47 @@ def test_document_widget_status_and_version(app,database,workflow,tmp_path,monke
     child=next(d for d in widget.model.rows if d.id!=id)
     assert child.vorgaenger_dokument_id==id
     assert repo.download(child.id)[1]==b'second'
+    widget.close()
+
+
+def test_document_widget_accepts_changed_working_copy(app,database,workflow,monkeypatch):
+    from PySide6.QtGui import QDesktopServices
+    repo=DokumentRepository(database)
+    id=repo.upload('Bearbeiten.txt','text/plain',b'first','thema',workflow['thema'])
+    widget=DokumentWidget(database,'thema',workflow['thema'])
+    widget.reload()
+    widget.table.selectRow(0)
+    monkeypatch.setattr(QDesktopServices,'openUrl',lambda *args: True)
+    monkeypatch.setattr(QMessageBox,'question',lambda *args,**kwargs: QMessageBox.StandardButton.Yes)
+    monkeypatch.setattr(QMessageBox,'information',MagicMock())
+    widget.open_document()
+    copy=app.qm_working_copy_manager.get(id)
+    copy.path.write_bytes(b'second')
+    widget.accept_working_copy()
+    archived=repo.get(id)
+    assert archived.status=='archiviert'
+    successor=next(document for document in repo.list('thema',workflow['thema']) if document.id!=id)
+    assert successor.vorgaenger_dokument_id==id and successor.status=='entwurf'
+    assert repo.download(successor.id)[1]==b'second'
+    assert app.qm_working_copy_manager.get(id) is None
+    widget.close()
+
+
+def test_document_widget_ignores_unchanged_working_copy(app,database,workflow,monkeypatch):
+    from PySide6.QtGui import QDesktopServices
+    repo=DokumentRepository(database)
+    id=repo.upload('Unveraendert.txt','text/plain',b'same','thema',workflow['thema'])
+    widget=DokumentWidget(database,'thema',workflow['thema'])
+    widget.reload()
+    widget.table.selectRow(0)
+    monkeypatch.setattr(QDesktopServices,'openUrl',lambda *args: True)
+    monkeypatch.setattr(QMessageBox,'information',MagicMock())
+    question=MagicMock()
+    monkeypatch.setattr(QMessageBox,'question',question)
+    widget.open_document()
+    widget.accept_working_copy()
+    assert repo.get(id).status=='entwurf'
+    assert len(repo.list('thema',workflow['thema']))==1
+    question.assert_not_called()
+    app.qm_working_copy_manager.discard(id)
     widget.close()

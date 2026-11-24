@@ -242,7 +242,7 @@ Zentrale relationale Ablage für Binärdateien (z. B. PDF, Word-Dateien, Protoko
 - `FOREIGN KEY (vorgaenger_dokument_id) REFERENCES qm.dokument(id) ON DELETE RESTRICT`
 - `CHECK chk_dokument_status`: Erlaubte Werte: `'entwurf'`, `'in_pruefung'`, `'freigegeben'`, `'obsolet'`, `'archiviert'`
 - `CHECK chk_dokument_freigabe`: Stellt sicher: Wenn `status = 'freigegeben'`, dann müssen `freigegeben_von` und `freigegeben_am` zwingend befüllt sein.
-- **Trigger-Schutz**: Trigger `trg_dokument_prevent_del` verhindert das physische Löschen (`DELETE`) freigegebener Dokumente.
+- **Trigger-Schutz**: `trg_dokument_prevent_del` verhindert das physische Löschen freigegebener, ehemals freigegebener und archivierter Dokumente. `trg_dokument_protect_version` schützt Inhalt und Identität vorhandener beziehungsweise archivierter Versionen vor direkter Änderung.
 
 ---
 
@@ -324,15 +324,19 @@ Zentrales, unveränderliches Auditlog zur Protokollierung aller Änderungen und 
    - *Verwendung*: `BEFORE INSERT OR UPDATE` auf `qm.dokument`.
    - *Funktion*: Berechnet serverseitig `dateigroesse = octet_length(NEW.inhalt)` und `pruefsumme_sha256 = qm.digest(NEW.inhalt, 'sha256')`.
 
-3. **`qm.fn_prevent_released_document_deletion()`**:
-   - *Verwendung*: `BEFORE DELETE` auf `qm.dokument`.
-   - *Funktion*: Verhindert das physische Löschen von Dokumenten mit `status = 'freigegeben'`.
+3. **`qm.fn_protect_document_version()`**:
+   - *Verwendung*: `BEFORE UPDATE` auf `qm.dokument`.
+   - *Funktion*: Verhindert Änderungen an Inhalt und Versionsidentität vorhandener Dokumentzeilen. Archivierte Versionen sind vollständig unveränderlich; geänderte Inhalte werden als Nachfolger gespeichert.
 
-4. **`qm.fn_prevent_audit_modification()`**:
+4. **`qm.fn_prevent_released_document_deletion()`**:
+   - *Verwendung*: `BEFORE DELETE` auf `qm.dokument`.
+   - *Funktion*: Verhindert das physische Löschen freigegebener, ehemals freigegebener und archivierter Dokumente.
+
+5. **`qm.fn_prevent_audit_modification()`**:
    - *Verwendung*: `BEFORE UPDATE OR DELETE` auf `qm.verlauf`.
    - *Funktion*: Blockiert jegliche Manipulation oder Löschung von Auditlog-Einträgen.
 
-5. **`qm.fn_audit_log_writer()`**:
+6. **`qm.fn_audit_log_writer()`**:
    - *Verwendung*: `AFTER INSERT OR UPDATE OR DELETE` auf `qm.thema`, `qm.sitzung`, `qm.besprechung`, `qm.massnahme`.
    - *Funktion*: Serialisiert `OLD` und `NEW` Datensätze via `to_jsonb()` und fügt einen unveränderlichen Verlaufseintrag in `qm.verlauf` ein.
 
@@ -350,6 +354,7 @@ Alle Indizes sind als Standard-B-Tree bzw. partielle Indizes umgesetzt, um optim
   - `idx_massnahme_vorgaenger ON qm.massnahme(vorgaenger_massnahme_id) WHERE vorgaenger_massnahme_id IS NOT NULL`
   - `idx_dokument_gruppe ON qm.dokument(dokument_gruppe_id) WHERE dokument_gruppe_id IS NOT NULL`
   - `idx_dokument_vorgaenger ON qm.dokument(vorgaenger_dokument_id) WHERE vorgaenger_dokument_id IS NOT NULL`
+  - `uq_dokument_ein_nachfolger UNIQUE ON qm.dokument(vorgaenger_dokument_id) WHERE vorgaenger_dokument_id IS NOT NULL` verhindert verzweigte Versionsketten.
 - **Integrität & Audit**: `idx_dokument_pruefsumme`, `idx_verlauf_entitaet (entitaet, entitaet_id)`, `idx_verlauf_zeitpunkt`, `idx_verlauf_benutzer`, `idx_verlauf_transaktion`.
 
 ---

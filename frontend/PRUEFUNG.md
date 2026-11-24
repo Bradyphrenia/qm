@@ -60,10 +60,18 @@ Repositorytests rollen ihre Änderungen dagegen zurück.
    das Dokument zusätzlich einer Sitzung, einem TOP oder einer Maßnahme zuordnen.
    Im jeweiligen Dokument-Tab prüfen. **Zuordnung lösen** lässt die Datei und
    andere Zuordnungen bestehen.
-7. **Neue Version** mit einer veränderten Testdatei wählen. Beide Dateien müssen
-   erhalten bleiben, der neue Datensatz ist ein Entwurf und hat dieselben
-   Zuordnungen. Vorgänger/Gruppe prüfen. Eine erneute Versionierung vom bereits
-   abgelösten Vorgänger muss abgewiesen werden.
+7. **Neue Version** mit einer veränderten Testdatei wählen. Beide Inhalte müssen
+   erhalten bleiben, der Vorgänger ist anschließend archiviert und der neue
+   Datensatz ist ein Entwurf mit denselben Zuordnungen. Vorgänger/Gruppe prüfen.
+   Eine erneute Versionierung vom bereits abgelösten Vorgänger muss abgewiesen werden.
+8. Den neuen Entwurf mit **Öffnen** starten, im externen Programm bearbeiten und
+   speichern. Danach **Bearbeitete Arbeitskopie übernehmen** wählen. Die Anwendung
+   muss die Änderung bestätigen lassen, den geöffneten Entwurf archivieren und
+   einen neuen Entwurfsnachfolger erzeugen. Ohne Inhaltsänderung darf kein neuer
+   Datensatz entstehen.
+9. Optional dieselbe Version in zwei Anwendungsinstanzen öffnen. Nach der ersten
+   erfolgreichen Übernahme muss die zweite einen Versionskonflikt melden; deren
+   lokale Arbeitskopie muss weiterhin vorhanden sein.
 8. Den neuen Datensatz auswählen, Status auf `freigegeben` setzen und neu laden.
    Freigabebenutzer und erhöhter Änderungsstand müssen vorhanden sein.
 9. Das Upload-Limit vorübergehend reduzieren; eine zu große Datei muss
@@ -112,12 +120,13 @@ Repositorytests rollen ihre Änderungen dagegen zurück.
   für nicht mehr aktuelle Dateien den Status wechseln oder eine Zuordnung lösen.
 - Das bestehende Schema protokolliert Dokumentstatus und Dokumentzuordnungen
   nicht im Audit. Es gibt deshalb keinen vollständigen Dokument-Verlauf.
-- Direktes externes SQL, das Dokumente ohne Erhöhung der `version` verändert,
-  umgeht den Versionsschutz der Anwendung. Die Gruppensperre wird ebenfalls
-  nur von kooperierenden Schreibern eingehalten.
-- Änderungen an einer extern geöffneten temporären Kopie werden nicht
-  automatisch hochgeladen. Zum Übernehmen die Datei speichern und als neue
-  Version hochladen; die temporäre Kopie wird beim App-Ende bereinigt.
+- Das Migrationsskript schützt Inhalt und Versionsidentität bestehender
+  Dokumentzeilen gegen direkte SQL-Änderungen und erzwingt höchstens einen
+  direkten Nachfolger. Die transaktionsgebundene Gruppensperre bleibt ein
+  zusätzlicher Schutz für kooperierende Anwendungsschreiber.
+- Änderungen an einer extern geöffneten Arbeitskopie werden bewusst nicht
+  automatisch hochgeladen. Nach dem Speichern ist **Bearbeitete Arbeitskopie
+  übernehmen** zu verwenden. Konflikte lassen die lokale Kopie bestehen.
 
 ## Automatische Prüfung
 

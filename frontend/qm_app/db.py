@@ -23,7 +23,7 @@ def translate_error(error):
         "28P01": "Benutzername oder Passwort ist nicht korrekt.",
         "3D000": "Die angegebene Datenbank existiert nicht.",
         "42P01": "Das erforderliche QM-Schema ist nicht vollständig vorhanden.",
-        "P0001": "Die Datenbank hat die Änderung abgewiesen. Freigegebene Dokumente und Verlaufseinträge sind geschützt.",
+        "P0001": "Die Datenbank hat die Änderung abgewiesen. Freigegebene oder archivierte Dokumentversionen und Verlaufseinträge sind geschützt.",
     }
     if error.pgcode in messages:
         return DatabaseError(messages[error.pgcode])

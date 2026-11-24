@@ -1,5 +1,6 @@
 import hashlib
-from uuid import uuid4
+from dataclasses import dataclass
+from uuid import UUID, uuid4
 import psycopg2
 from psycopg2 import sql
 from qm_app.db import DatabaseError, ConcurrencyError
@@ -7,6 +8,16 @@ from qm_app.models import Dokument, DOKUMENT_STATUS
 
 ENTITIES = {'thema': 'Thema', 'sitzung': 'Sitzung', 'besprechung': 'Tagesordnungspunkt', 'massnahme': 'Maßnahme'}
 COLUMNS = ', '.join('d.' + name for name in Dokument.__dataclass_fields__)
+
+
+@dataclass(frozen=True)
+class DocumentSnapshot:
+    id: UUID
+    version: int
+    name: str
+    mime_type: str
+    checksum: bytes
+    data: bytes
 
 
 class DokumentRepository:
@@ -48,6 +59,24 @@ class DokumentRepository:
             if row is None:
                 raise DatabaseError('Das Dokument existiert nicht mehr.')
             return Dokument(**row)
+
+    @staticmethod
+    def _content(row):
+        data = bytes(row['inhalt'])
+        checksum = hashlib.sha256(data).digest()
+        if len(data) != row['dateigroesse'] or (row['pruefsumme_sha256'] is not None and checksum != bytes(row['pruefsumme_sha256'])):
+            raise DatabaseError('Dateigröße oder Prüfsumme stimmt nicht. Download abgebrochen.')
+        return data, checksum
+
+    def checkout(self, id, expected_version):
+        with self.db.transaction() as c:
+            c.execute('''SELECT id,version,dateiname,mime_type,inhalt,dateigroesse,pruefsumme_sha256
+                FROM qm.dokument WHERE id=%s FOR SHARE''', (id,))
+            row = c.fetchone()
+            if row is None or row['version'] != expected_version:
+                raise ConcurrencyError()
+            data, checksum = self._content(row)
+            return DocumentSnapshot(row['id'], row['version'], row['dateiname'], row['mime_type'], checksum, data)
 
     @staticmethod
     def validate_file(name, mime, data, limit):
@@ -97,18 +126,33 @@ class DokumentRepository:
             raise ConcurrencyError()
         return Dokument(**row), group['gruppe']
 
-    def new_version(self, id, expected_version, name, mime, data, limit=25*1024*1024):
+    def new_version(self, id, expected_version, name, mime, data, limit=25*1024*1024, expected_checksum=None):
         self.validate_file(name,mime,data,limit)
         new_id = uuid4()
         with self.db.transaction() as c:
             old, group = self._lock(c,id,expected_version)
+            if expected_checksum is not None:
+                if old.pruefsumme_sha256 is not None:
+                    current_checksum = bytes(old.pruefsumme_sha256)
+                else:
+                    c.execute('SELECT inhalt FROM qm.dokument WHERE id=%s', (id,))
+                    current_checksum = hashlib.sha256(bytes(c.fetchone()['inhalt'])).digest()
+                if current_checksum != bytes(expected_checksum):
+                    raise ConcurrencyError()
             c.execute('SELECT id FROM qm.dokument WHERE vorgaenger_dokument_id=%s', (id,))
             if c.fetchone():
                 raise DatabaseError('Es gibt bereits eine Nachfolgeversion. Bitte diese auswählen und aktualisieren.')
+            predecessor_version = old.version
+            if old.status != 'archiviert':
+                c.execute('UPDATE qm.dokument SET status=%s,version=version+1 WHERE id=%s AND version=%s',
+                          ('archiviert',id,old.version))
+                if c.rowcount != 1:
+                    raise ConcurrencyError()
+                predecessor_version += 1
             c.execute('''INSERT INTO qm.dokument (id,dateiname,mime_type,inhalt,dokumenttyp,version,
                 dokument_gruppe_id,vorgaenger_dokument_id,erstellt_von)
                 VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)''',
-                (new_id,name,mime,psycopg2.Binary(data),old.dokumenttyp,old.version+1,group,id,self.db.user))
+                (new_id,name,mime,psycopg2.Binary(data),old.dokumenttyp,predecessor_version+1,group,id,self.db.user))
             for entity in ENTITIES:
                 table, column = self.table(entity)
                 c.execute(sql.SQL('''INSERT INTO {} ({},dokument_id,dokument_rolle,sichtbarkeit,sortierung,erstellt_von)
@@ -136,9 +180,7 @@ class DokumentRepository:
             row = c.fetchone()
             if row is None:
                 raise DatabaseError('Das Dokument existiert nicht mehr.')
-            data = bytes(row['inhalt'])
-            if len(data) != row['dateigroesse'] or (row['pruefsumme_sha256'] is not None and hashlib.sha256(data).digest() != bytes(row['pruefsumme_sha256'])):
-                raise DatabaseError('Dateigröße oder Prüfsumme stimmt nicht. Download abgebrochen.')
+            data, _ = self._content(row)
             return row['dateiname'], data
 
     def delete(self, id, expected_version):

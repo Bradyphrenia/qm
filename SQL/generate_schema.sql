@@ -47,14 +47,37 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Trigger function: Prevent physical deletion of released documents
+-- Trigger function: Prevent physical deletion of released or archived documents
 CREATE OR REPLACE FUNCTION qm.fn_prevent_released_document_deletion()
 RETURNS TRIGGER AS $$
 BEGIN
-    IF OLD.status = 'freigegeben' THEN
-        RAISE EXCEPTION 'Released documents (status = freigegeben) cannot be deleted.';
+    IF OLD.status IN ('freigegeben', 'archiviert')
+       OR OLD.freigegeben_von IS NOT NULL OR OLD.freigegeben_am IS NOT NULL THEN
+        RAISE EXCEPTION 'Released or archived documents cannot be deleted.';
     END IF;
     RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Document bytes and version-chain identity are immutable after insertion.
+-- Archived rows are completely immutable; a successor must be created instead.
+CREATE OR REPLACE FUNCTION qm.fn_protect_document_version()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF OLD.status = 'archiviert' THEN
+        RAISE EXCEPTION 'Archived document versions cannot be modified.';
+    END IF;
+    IF NEW.inhalt IS DISTINCT FROM OLD.inhalt
+       OR NEW.dateiname IS DISTINCT FROM OLD.dateiname
+       OR NEW.mime_type IS DISTINCT FROM OLD.mime_type
+       OR NEW.dokumenttyp IS DISTINCT FROM OLD.dokumenttyp
+       OR NEW.dokument_gruppe_id IS DISTINCT FROM OLD.dokument_gruppe_id
+       OR NEW.vorgaenger_dokument_id IS DISTINCT FROM OLD.vorgaenger_dokument_id
+       OR NEW.erstellt_von IS DISTINCT FROM OLD.erstellt_von
+       OR NEW.erstellt_am IS DISTINCT FROM OLD.erstellt_am THEN
+        RAISE EXCEPTION 'Document content and version identity cannot be modified; create a successor version.';
+    END IF;
+    RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
@@ -260,6 +283,11 @@ BEFORE INSERT OR UPDATE ON qm.dokument
 FOR EACH ROW
 EXECUTE PROCEDURE qm.fn_dokument_metadata();
 
+CREATE TRIGGER trg_dokument_protect_version
+BEFORE UPDATE ON qm.dokument
+FOR EACH ROW
+EXECUTE PROCEDURE qm.fn_protect_document_version();
+
 CREATE TRIGGER trg_dokument_prevent_del
 BEFORE DELETE ON qm.dokument
 FOR EACH ROW
@@ -454,6 +482,7 @@ CREATE INDEX IF NOT EXISTS idx_massnahme_vorgaenger ON qm.massnahme(vorgaenger_m
 CREATE INDEX IF NOT EXISTS idx_dokument_status ON qm.dokument(status);
 CREATE INDEX IF NOT EXISTS idx_dokument_gruppe ON qm.dokument(dokument_gruppe_id) WHERE dokument_gruppe_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_dokument_vorgaenger ON qm.dokument(vorgaenger_dokument_id) WHERE vorgaenger_dokument_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS uq_dokument_ein_nachfolger ON qm.dokument(vorgaenger_dokument_id) WHERE vorgaenger_dokument_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_dokument_pruefsumme ON qm.dokument(pruefsumme_sha256);
 
 -- Dokument-Zuordnungen

@@ -63,7 +63,9 @@ def test_failed_login_does_not_save_profile(app, tmp_path, monkeypatch):
     dialog.accept()
     assert dialog.result() == QDialog.DialogCode.Rejected
     assert dialog.database is None
-    assert settings.load_profile().user == ''
+    # A failed login must not persist the attempted name; the configured
+    # application default remains in effect for a fresh settings file.
+    assert settings.load_profile().user == 'qm'
     assert dialog.buttons.isEnabled()
     assert app.overrideCursor() is None
     dialog.close()

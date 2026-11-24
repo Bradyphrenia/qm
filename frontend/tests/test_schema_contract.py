@@ -28,3 +28,10 @@ def test_models_cover_schema_fields():
         if table == 'dokument':
             expected.remove('inhalt')  # metadata lists must not load binary content
         assert {f.name for f in fields(cls)} == expected
+
+
+def test_document_version_guards_exist():
+    sql = SCHEMA.read_text()
+    assert 'CREATE UNIQUE INDEX IF NOT EXISTS uq_dokument_ein_nachfolger' in sql
+    assert 'CREATE OR REPLACE FUNCTION qm.fn_protect_document_version()' in sql
+    assert 'CREATE TRIGGER trg_dokument_protect_version' in sql

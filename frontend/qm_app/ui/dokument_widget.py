@@ -1,15 +1,15 @@
 from contextlib import contextmanager
 from pathlib import Path
 import mimetypes
-import re
 from uuid import UUID
-from PySide6.QtCore import Qt, QSortFilterProxyModel, QTemporaryDir, QUrl, QSaveFile, QIODevice
+from PySide6.QtCore import Qt, QSortFilterProxyModel, QUrl
 from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (QWidget,QVBoxLayout,QHBoxLayout,QLabel,QLineEdit,QPushButton,
     QTableView,QAbstractItemView,QFileDialog,QInputDialog,QMessageBox,QDialog,
     QDialogButtonBox,QComboBox,QFormLayout,QApplication)
 from qm_app.config import Settings
 from qm_app.db import DatabaseError
+from qm_app.document_working_copy import safe_filename, working_copy_manager, write_download
 from qm_app.models import DOKUMENT_STATUS
 from qm_app.repositories.dokument_repo import DokumentRepository, ENTITIES
 from qm_app.ui.table_model import TableModel, Column
@@ -24,30 +24,12 @@ def busy():
         QApplication.restoreOverrideCursor()
 
 
-def safe_filename(name):
-    name = re.sub(r'[<>:"/\\|?*\x00-\x1f]', '_', name.replace('\\','/').split('/')[-1]).strip(' .')
-    if not name or name.split('.')[0].upper() in {'CON','PRN','AUX','NUL',*(f'COM{i}' for i in range(1,10)),*(f'LPT{i}' for i in range(1,10))}:
-        name = 'Dokument_' + name
-    return name
-
-
 def read_upload(path, limit):
     with open(path, 'rb') as f:
         data = f.read(limit+1)
     if len(data) > limit:
         raise DatabaseError(f'Die Datei überschreitet das Upload-Limit von {limit//(1024*1024)} MB.')
     return Path(path).name, mimetypes.guess_type(path)[0] or 'application/octet-stream', data
-
-
-def write_download(path, data):
-    output = QSaveFile(str(path))
-    if not output.open(QIODevice.OpenModeFlag.WriteOnly):
-        raise DatabaseError('Die Zieldatei konnte nicht geöffnet werden: '+output.errorString())
-    if output.write(data) != len(data):
-        output.cancelWriting()
-        raise DatabaseError('Die Datei konnte nicht vollständig geschrieben werden.')
-    if not output.commit():
-        raise DatabaseError('Die Datei konnte nicht gespeichert werden: '+output.errorString())
 
 
 class TargetDialog(QDialog):
@@ -88,6 +70,7 @@ class DokumentWidget(QWidget):
     def __init__(self,database,entity=None,entity_id=None,parent=None):
         super().__init__(parent)
         self.repo=DokumentRepository(database)
+        self.working_copies=working_copy_manager()
         self.entity,self.entity_id=entity,entity_id
         self.loaded=False
         layout=QVBoxLayout(self)
@@ -100,7 +83,8 @@ class DokumentWidget(QWidget):
         bar=QHBoxLayout()
         self.buttons={}
         for key,label,handler in [('upload','Hochladen',self.upload),('version','Neue Version',self.new_version),
-            ('download','Speichern unter',self.download),('open','Öffnen',self.open_document)]:
+            ('download','Speichern unter',self.download),('open','Öffnen',self.open_document),
+            ('accept','Bearbeitete Arbeitskopie übernehmen',self.accept_working_copy)]:
             button=QPushButton(label)
             button.clicked.connect(handler)
             self.buttons[key]=button
@@ -142,6 +126,14 @@ class DokumentWidget(QWidget):
             self.notice.setText('Bitte den Datensatz zuerst speichern und erneut öffnen, um Dokumente zu verwalten.')
         self.selection_changed()
 
+    def select_document(self, document_id):
+        for row, document in enumerate(self.model.rows):
+            if document.id == document_id:
+                proxy_index=self.proxy.mapFromSource(self.model.index(row,0))
+                if proxy_index.isValid():
+                    self.table.selectRow(proxy_index.row())
+                return
+
     def showEvent(self,event):
         super().showEvent(event)
         if not self.loaded:
@@ -157,10 +149,12 @@ class DokumentWidget(QWidget):
         for key,button in self.buttons.items():
             button.setEnabled(available and (key in ('upload','refresh','limit') or selected is not None))
         self.buttons['unlink'].setEnabled(selected is not None and self.entity_id is not None)
+        self.buttons['accept'].setEnabled(selected is not None and self.working_copies.get(selected.id) is not None)
         if selected:
             checksum=bytes(selected.pruefsumme_sha256).hex() if selected.pruefsumme_sha256 else 'nicht vorhanden'
+            working = '\nArbeitskopie: geöffnet' if self.working_copies.get(selected.id) is not None else ''
             self.details.setText(f'SHA-256: {checksum}\nGruppe: {selected.dokument_gruppe_id or selected.id}\n'
-                f'Vorgänger: {selected.vorgaenger_dokument_id or "–"} | Freigabe: {selected.freigegeben_von or "–"}')
+                f'Vorgänger: {selected.vorgaenger_dokument_id or "–"} | Freigabe: {selected.freigegeben_von or "–"}{working}')
         else:
             self.details.clear()
 
@@ -217,7 +211,8 @@ class DokumentWidget(QWidget):
         limit=Settings().upload_limit_mb()*1024*1024
         def action():
             name,mime,data=read_upload(path,limit)
-            self.repo.new_version(item.id,item.version,name,mime,data,limit=limit)
+            self.repo.new_version(item.id,item.version,name,mime,data,limit=limit,
+                expected_checksum=item.pruefsumme_sha256)
         self.run(action)
 
     def download(self):
@@ -232,21 +227,45 @@ class DokumentWidget(QWidget):
         item=self.selected()
         if not item:
             return
-        def action():
-            name,data=self.repo.download(item.id)
-            directory=QTemporaryDir()
-            if not directory.isValid():
-                raise DatabaseError('Temporäre Datei konnte nicht angelegt werden.')
-            path=Path(directory.path())/safe_filename(name)
-            write_download(path,data)
-            # Keep files alive even after closing the parent dialog.
-            app=QApplication.instance()
-            if not hasattr(app,'qm_open_document_dirs'):
-                app.qm_open_document_dirs=[]
-            app.qm_open_document_dirs.append(directory)
-            if not QDesktopServices.openUrl(QUrl.fromLocalFile(str(path))):
+        try:
+            with busy():
+                copy=self.working_copies.get(item.id)
+                if copy is None:
+                    copy=self.working_copies.create(self.repo.checkout(item.id,item.version))
+                opened=QDesktopServices.openUrl(QUrl.fromLocalFile(str(copy.path)))
+            if not opened:
                 raise DatabaseError('Kein passendes Programm zum Öffnen gefunden. Bitte „Speichern unter“ verwenden.')
-        self.run(action)
+        except (DatabaseError,OSError) as error:
+            QMessageBox.warning(self,'Dokumentaktion fehlgeschlagen',str(error))
+        self.selection_changed()
+
+    def accept_working_copy(self):
+        item=self.selected()
+        copy=self.working_copies.get(item.id) if item else None
+        if copy is None:
+            return
+        limit=Settings().upload_limit_mb()*1024*1024
+        try:
+            with busy():
+                data=self.working_copies.read_if_changed(copy,limit)
+            if data is None:
+                QMessageBox.information(self,'Keine Änderung','Die Arbeitskopie stimmt unverändert mit dem geöffneten Datenbankstand überein.')
+                return
+            answer=QMessageBox.question(self,'Bearbeitete Arbeitskopie übernehmen',
+                'Die bearbeitete Datei als neue Entwurfsversion speichern und die bisherige Version archivieren?')
+            if answer!=QMessageBox.StandardButton.Yes:
+                return
+            with busy():
+                new_id=self.repo.new_version(copy.document_id,copy.expected_version,copy.name,copy.mime_type,data,
+                    limit=limit,expected_checksum=copy.baseline_checksum)
+            self.working_copies.discard(copy.document_id)
+            QMessageBox.information(self,'Dokument übernommen','Die neue Entwurfsversion wurde gespeichert und der Vorgänger archiviert.')
+        except (DatabaseError,OSError) as error:
+            QMessageBox.warning(self,'Dokumentaktion fehlgeschlagen',str(error))
+            new_id=None
+        self.reload()
+        if new_id is not None:
+            self.select_document(new_id)
 
     def link(self):
         item=self.selected()

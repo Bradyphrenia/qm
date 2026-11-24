@@ -94,9 +94,13 @@ Datenbank-UI-Tests erzeugen Testdatensätze, rollen aber sämtliche Änderungen
 einschließlich Audit-Einträgen zurück. PostgreSQL-Sequenzen können dabei Lücken
 erhalten. Ein Schema wird nicht automatisch angelegt. Zugangsdaten nicht einchecken.
 
-Stand nach Schritt 5: 36 Tests bestanden gegen PostgreSQL 17.12 auf macOS.
-Der Start externer Programme zum Öffnen von Dokumenten wird im automatischen
-Test simuliert; Dateiexport und temporäre Dateien werden tatsächlich geprüft.
+Die Suite umfasst 39 Testfunktionen beziehungsweise 42 von pytest gesammelte
+Testfälle. Am 24.11.2026 wurden unter Windows mit Python 3.12.4 und pytest 9.2.0
+23 lokale Tests erfolgreich ausgeführt; 19 PostgreSQL-Tests wurden ohne gesetztes
+`QM_TEST_DSN` erwartungsgemäß übersprungen. Der Start externer Programme wird
+simuliert; Dateiexport, temporäre Arbeitskopie, Änderungserkennung und ausdrückliche
+Übernahme werden tatsächlich geprüft. Für den vollständigen Lauf ist weiterhin
+`QM_TEST_DSN` erforderlich.
 
 ## Speicherregeln
 
@@ -119,9 +123,17 @@ fragt beim Upload nach dem Ziel. Ein bestehendes Dokument lässt sich dort über
 **Zuordnung lösen** entfernt im jeweiligen Tab nur die Verbindung, nicht die Datei.
 
 **Neue Version** legt eine neue Datei als Entwurf an und übernimmt alle vorhandenen
-Zuordnungen der ausgewählten Vorgängerversion. Deren Inhalt bleibt unverändert.
+Zuordnungen der ausgewählten Vorgängerversion. Der Vorgänger wird in derselben
+Transaktion archiviert; sein Inhalt bleibt unverändert.
 Bereits abgelöste Versionen können keine weiteren direkten Nachfolger erhalten;
 bitte den letzten Nachfolger auswählen. Die Liste zeigt auch ältere Versionen.
+
+**Öffnen** erzeugt eine verwaltete Arbeitskopie und startet das zum Dateityp
+gehörende externe Programm. Nach dem Speichern im externen Programm übernimmt
+**Bearbeitete Arbeitskopie übernehmen** die Änderung ausdrücklich als neue
+Entwurfsversion und archiviert den geöffneten Vorgänger. Vorher werden Dateigröße,
+SHA-256, Ausgangsversion und das Ende der Versionskette geprüft. Eine unveränderte
+Arbeitskopie erzeugt keinen Datenbankeintrag. Bei Konflikten bleibt sie erhalten.
 
 Die vorhandene Spalte `version` dient zugleich als optimistischer Änderungsstand:
 Neue Dateien starten mit 1, Statuswechsel erhöhen den Stand der jeweiligen Zeile,
@@ -136,10 +148,17 @@ Versions-Trigger noch `geaendert_von`; der Repository-Code erhöht die Version
 explizit. Das bestehende Schema auditiert Dokumente/Zuordnungen nicht in
 `qm.verlauf`. Diese Grenze bleibt sichtbar in der Prüfanleitung und TODO-Liste.
 
-Listen laden nur Metadaten. Download prüft Dateigröße und, sofern vorhanden,
-SHA-256 gegen die ausgelesenen Bytes. **Öffnen** erzeugt eine temporäre Kopie,
-die bis zum Beenden der Anwendung verfügbar bleibt. Änderungen dieser Kopie
-werden nicht automatisch zurückgeladen; dafür **Neue Version** verwenden.
+Listen laden nur Metadaten. Download und Arbeitskopien prüfen Dateigröße und,
+sofern vorhanden, SHA-256 gegen die ausgelesenen Bytes. Arbeitskopien liegen in
+eindeutigen temporären Verzeichnissen, bleiben über das Schließen eines Dialogs
+hinaus verfügbar und werden nach erfolgreicher Übernahme oder beim Beenden der
+Anwendung bereinigt. Verwaiste QM-Arbeitsverzeichnisse werden nur entfernt, wenn
+keine aktive Sperre einer anderen Anwendungsinstanz besteht.
+
+Bestehende Datenbanken müssen vor Nutzung der neuen Funktion einmalig mit
+`SQL/migrate_document_working_copy_versioning.sql` aktualisiert werden. Die
+Migration verhindert mehrere direkte Nachfolger und schützt archivierte
+Dokumentversionen auch auf Datenbankebene vor Änderung und Löschung.
 
 Das Upload-Limit beträgt standardmäßig 25 MB und ist über **Upload-Limit** lokal
 konfigurierbar (QSettings). Übertragungen erfolgen synchron mit Wartecursor.

@@ -44,9 +44,10 @@ Das bestehende SQL-Schema bleibt für den MVP maßgeblich.
   Nachfolger startet mit Vorgängerstand + 1. Die Inhaltskette folgt Gruppe und
   Vorgänger-ID, nicht einer strikt fortlaufenden Inhaltsversionsnummer. Falls
   eine eigene fachliche Nummer benötigt wird, Schemaerweiterung planen.
-- [ ] **Externe Dokument-Schreiber berücksichtigen:** Direkte SQL-Änderungen
-  ohne Versionserhöhung umgehen den Schutz. Die Versionsgruppen-Sperre schützt
-  nur kooperierende Anwendungsschreiber.
+- [x] **Externe Dokument-Schreiber berücksichtigen:** Inhalts- und Kettenfelder
+  vorhandener Dokumentversionen werden per Trigger geschützt; ein eindeutiger
+  Index verhindert mehrere direkte Nachfolger. Die Versionsgruppen-Sperre
+  serialisiert zusätzlich die kooperierenden Anwendungsschreiber.
 - [ ] **Maßnahmenabschluss abstimmen:** Abschlussdatum wird explizit gepflegt;
   Statuswechsel ergänzen es nicht automatisch. Prüfen, ob künftig ein Pflichtfeld
   oder eine automatische Vorbelegung gewünscht wird.
@@ -90,7 +91,7 @@ Das bestehende SQL-Schema bleibt für den MVP maßgeblich.
 
 - [ ] Öffnen verschiedener Dateitypen mit realen externen Programmen auf macOS
   und Windows prüfen. Automatische Tests simulieren den Programmstart und prüfen
-  die temporäre Kopie sowie ihre Lebensdauer.
+  die temporäre Kopie, Änderungserkennung, Übernahme und Lebensdauer.
 - [ ] Bedienung mit größeren realistischen PDF-/Word-Dateien und Zeitbedarf bei
   Upload/Download prüfen; diese Inhaltsformate werden unverändert als Bytes gespeichert.
 

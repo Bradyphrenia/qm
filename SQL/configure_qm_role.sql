@@ -81,6 +81,7 @@ ALTER FUNCTION qm.fn_set_timestamp_and_version() OWNER TO qm_owner;
 ALTER FUNCTION qm.fn_dokument_metadata() OWNER TO qm_owner;
 ALTER FUNCTION qm.fn_prevent_audit_modification() OWNER TO qm_owner;
 ALTER FUNCTION qm.fn_prevent_released_document_deletion() OWNER TO qm_owner;
+ALTER FUNCTION qm.fn_protect_document_version() OWNER TO qm_owner;
 
 -- No role receives access to the QM schema through PUBLIC.
 REVOKE ALL PRIVILEGES ON SCHEMA qm FROM PUBLIC;
