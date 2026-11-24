@@ -96,11 +96,10 @@ erhalten. Ein Schema wird nicht automatisch angelegt. Zugangsdaten nicht einchec
 
 Die Suite umfasst 39 Testfunktionen beziehungsweise 42 von pytest gesammelte
 Testfälle. Am 24.11.2026 wurden unter Windows mit Python 3.12.4 und pytest 9.2.0
-23 lokale Tests erfolgreich ausgeführt; 19 PostgreSQL-Tests wurden ohne gesetztes
-`QM_TEST_DSN` erwartungsgemäß übersprungen. Der Start externer Programme wird
-simuliert; Dateiexport, temporäre Arbeitskopie, Änderungserkennung und ausdrückliche
-Übernahme werden tatsächlich geprüft. Für den vollständigen Lauf ist weiterhin
-`QM_TEST_DSN` erforderlich.
+alle 42 Tests erfolgreich gegen die gesonderte Datenbank `qm_test` ausgeführt.
+Der Start externer Programme wird simuliert; Dateiexport, temporäre Arbeitskopie,
+Änderungserkennung und ausdrückliche Übernahme werden tatsächlich geprüft. Für
+weitere vollständige Läufe ist `QM_TEST_DSN` auf eine Testdatenbank zu setzen.
 
 ## Speicherregeln
 

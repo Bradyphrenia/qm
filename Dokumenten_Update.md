@@ -391,9 +391,8 @@ Die Umsetzung gilt als abgeschlossen, wenn:
 
 Die Python-Quellen und Tests wurden nach der Umsetzung vollständig kompiliert.
 Direkte Prüfungen der Arbeitskopien-Verwaltung, der neuen UI-Struktur und des
-SQL-Schema-Vertrags waren erfolgreich. Am 24.11.2026 sammelte pytest unter
-Windows 42 Testfälle: 23 lokale Tests bestanden, 19 PostgreSQL-Tests wurden ohne
-gesetztes `QM_TEST_DSN` erwartungsgemäß übersprungen. Für einen vollständigen
-Datenbank-Testlauf muss noch eine gesonderte Testdatenbank-Verbindung konfiguriert
-werden; die produktive Datenbank wurde dafür nicht als Testziel verwendet.
+SQL-Schema-Vertrags waren erfolgreich. Am 24.11.2026 wurden unter Windows mit
+Python 3.12.4 und pytest 9.2.0 alle 42 gesammelten Tests erfolgreich gegen die
+gesonderte Datenbank `qm_test` ausgeführt. Die produktive Datenbank wurde nicht
+als Testziel verwendet.
 
