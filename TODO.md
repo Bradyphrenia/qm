@@ -122,8 +122,10 @@ Das bestehende SQL-Schema bleibt für den MVP maßgeblich.
 - [x] macOS-arm64-Build mit Python 3.14.10, Cython 3.3.1 und PyInstaller 6.22.3
   erfolgreich. Offline-Selbsttest für übersetzte Module und fertiges `qm.app`
   bestanden; zusätzlich alle 36 Tests gegen Cython-Module mit Testdatenbank bestanden.
-- [ ] Windows-Build auf einem 64-Bit-Windows-Rechner mit passenden MSVC Build
-  Tools durchführen und `qm.exe` auf einem Rechner ohne Python testen.
+- [x] Windows-Build auf einem 64-Bit-Windows-Rechner mit passenden MSVC Build
+  Tools durchgeführt; beide EXE-Selbsttests bestanden.
+- [ ] `qm.exe` und `qm-updater.exe` auf einem Zielrechner ohne Python- und
+  Rust-Entwicklungsumgebung testen.
 - [ ] macOS-Bundle auf einem weiteren Ziel-Mac testen; Intel-Build bei Bedarf
   separat erstellen. Developer-ID-Signierung/Notarisierung für Verteilung planen.
 - [x] QM-Icon eingebunden: Windows verwendet `frontend/qm.ico`; macOS bevorzugt
@@ -133,6 +135,24 @@ Das bestehende SQL-Schema bleibt für den MVP maßgeblich.
 - [ ] Vollständigen macOS-Build nach der Iconkorrektur erneut ausführen und die
   Darstellung des App-Icons im Finder/Dock visuell prüfen.
 - [ ] Gegebenenfalls Windows-Code-Signierung ergänzen.
+- [x] Nativen Windows-Updater als Rust-Unterprojekt umgesetzt: feste Netz- und
+  Installationspfade, App-/Updater-Einzelinstanzschutz, Zeitvergleich, stabiles
+  Staging, Größe/SHA-256/PE-Prüfung, Austausch mit `.old`-Rücksicherung,
+  Protokollierung, lokaler Fallback und gemeinsames Icon.
+- [x] Updater in den Windows-Build integriert. `bundle.bat` erzeugt über
+  `build_tools/build.py` gemeinsam `dist/qm.exe` und `dist/qm-updater.exe` und
+  führt Rust-Format-, Clippy-, Test-, Release- und Selbstprüfung aus.
+- [x] Vollständigen gemeinsamen Build mit `bundle.bat` durchgeführt. Beide
+  Selbsttests bestanden; `dist/qm.exe` und `dist/qm-updater.exe` wurden erzeugt
+  und ihre eingebetteten 32×32-QM-Symbole stimmen überein.
+- [ ] Beide fertigen Dateien im festgelegten lokalen Ordner installieren und
+  die Anwenderverknüpfung auf `qm-updater.exe` setzen.
+- [ ] Echte Veröffentlichung über `J:\EPZ\Daten OA Troeger\qm.exe.uploading`
+  mit anschließendem Umbenennen abnehmen; Netzunterbrechung, parallele Starts,
+  beschädigte Quelle, Rollback und Protokoll kontrollieren.
+- [ ] `qm.exe` und `qm-updater.exe` mit demselben Code-Signing-Zertifikat
+  signieren und Pilotprüfung mit dem tatsächlich eingesetzten Virenscanner
+  sowie SmartScreen durchführen. Der Code kann keine Alarmfreiheit garantieren.
 
 ## Optionale Erweiterungen nach dem MVP
 

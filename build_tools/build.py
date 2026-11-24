@@ -54,6 +54,21 @@ def smoke(command, directory):
             raise RuntimeError('Der Anwendungs-Selbsttest hat keinen erfolgreichen Abschluss gemeldet.')
 
 
+def build_windows_updater():
+    updater = ROOT / 'updater'
+    if not shutil.which('cargo'):
+        raise RuntimeError('Rust/Cargo fehlt. Bitte Rust installieren und bundle.bat erneut starten.')
+    run(['cargo', 'fmt', '--check'], cwd=updater)
+    run(['cargo', 'clippy', '--locked', '--all-targets', '--', '-D', 'warnings'], cwd=updater)
+    run(['cargo', 'test', '--locked'], cwd=updater)
+    run(['cargo', 'build', '--release', '--locked'], cwd=updater)
+    source = updater / 'target' / 'release' / 'qm-updater.exe'
+    target = ROOT / 'dist' / 'qm-updater.exe'
+    shutil.copy2(source, target)
+    run([target, '--self-test'], cwd=ROOT / 'dist', timeout=30)
+    return target
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--platform', choices=['macos', 'windows'], required=True)
@@ -113,13 +128,19 @@ def main():
     run(command, cwd=STAGE, env=env)
     artifact = ROOT / 'dist' / ('qm.app/Contents/MacOS/qm' if args.platform == 'macos' else 'qm.exe')
     smoke([artifact, '--smoke-test'], ROOT / 'dist')
+    updater_artifact = build_windows_updater() if args.platform == 'windows' else None
     report = {'python': sys.version, 'platform': sys.platform,
               'artifact': str(artifact), 'compiled_modules': sorted(modules),
               'compiled_smoke': 'passed', 'frozen_smoke': 'passed'}
+    if updater_artifact:
+        report.update({'updater_artifact': str(updater_artifact),
+                       'updater_smoke': 'passed'})
     (BUILD / 'build-report.json').write_text(json.dumps(report, indent=2), encoding='utf-8')
     with (BUILD / 'requirements-resolved.txt').open('w', encoding='utf-8') as output:
         subprocess.run([sys.executable, '-m', 'pip', 'freeze'], stdout=output, check=True)
     print('Build und Offline-Selbsttest erfolgreich: ' + str(artifact))
+    if updater_artifact:
+        print('Windows-Updater erfolgreich: ' + str(updater_artifact))
 
 
 if __name__ == '__main__':

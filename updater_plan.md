@@ -1,5 +1,22 @@
 # Plan für einen Windows-Updater der QM-Anwendung
 
+## Umsetzungsstand vom 24. November 2026
+
+Der Kern dieses Plans ist umgesetzt. Das Rust-Projekt liegt unter `updater/`;
+die Windows-App besitzt den benannten Einzelinstanzschutz, und der Windows-Build
+erzeugt `qm.exe` sowie `qm-updater.exe` gemeinsam unter `dist/`. Implementiert
+sind feste Pfade, Datumsentscheidung, Stabilitätsprüfung, lokales Staging,
+Größe/SHA-256/PE-Prüfung, `.old`-Rücksicherung, Protokollierung, lokaler Start
+bei nicht erreichbarer Netzquelle und dasselbe `frontend/qm.ico` für beide EXEs.
+
+Verifiziert wurden am 24.11.2026 `cargo fmt --check`, Clippy ohne Warnungen,
+elf Rust-Tests, Release-Build, EXE-Selbsttest sowie 44 Python-Tests gegen
+`qm_test`. Auch der vollständige gemeinsame `bundle.bat`-Lauf mit beiden
+Selbsttests und die Übereinstimmung der eingebetteten Symbole wurden bestätigt.
+Noch offen sind die manuelle Abnahme mit echter Veröffentlichung auf dem
+Netzlaufwerk, das Verhalten des eingesetzten Virenscanners/SmartScreen und eine
+optionale digitale Signatur.
+
 ## Verbindliche Pfade – hier direkt eintragen
 
 Die beiden folgenden Zeilen sind die verbindliche Quelle für die spätere
@@ -208,9 +225,11 @@ updater\
 │   ├── windows_mutex.rs
 │   ├── integrity.rs
 │   └── logging.rs
-└── tests\
-    └── updater_tests.rs
 ```
+
+Die tatsächlich umgesetzten Rust-Tests liegen als `#[cfg(test)]`-Module direkt
+in `src/update.rs` und `src/windows_mutex.rs`. Dadurch können sie auch interne
+Fehlerpfade prüfen, ohne öffentliche Test-Schnittstellen einzuführen.
 
 Vorteile gegenüber einem zweiten PyInstaller-Programm:
 
@@ -505,7 +524,7 @@ Das Protokoll soll rotiert oder auf eine begrenzte Größe beschränkt werden.
   - Dateigröße, SHA-256 und Plausibilitätsprüfung der EXE.
 - `updater/src/logging.rs`
   - begrenztes lokales Updateprotokoll ohne sensible Daten.
-- `updater/tests/updater_tests.rs`
+- Testmodule in `updater/src/update.rs` und `updater/src/windows_mutex.rs`
   - isolierte Updatertests ohne echte Netzfreigabe.
 
 ### Anzupassende Dateien
@@ -522,7 +541,8 @@ Das Protokoll soll rotiert oder auf eine begrenzte Größe beschränkt werden.
   - ein gemeinsames Windows-Ausgabeverzeichnis erzeugen, das unmittelbar
     `qm.exe` und `qm-updater.exe` enthält.
 - `build_tools/smoke_test.py`
-  - Mutex- und Startverhalten offline prüfen.
+  - gebündelte Anwendung und Fensterstart offline prüfen;
+  - Mutex-Verhalten wird separat durch pytest und Cargo geprüft.
 - `bundle.bat`
   - Windows-Build von `qm.exe` und anschließend den Cargo-Release-Build von
     `qm-updater.exe` auslösen;
@@ -543,8 +563,9 @@ Der macOS-Build darf den Updater nicht erzeugen und durch die Mutex-Ergänzung
 nicht verändert werden.
 
 Der Windows-Build gilt erst als erfolgreich, wenn beide Dateien gemeinsam im
-Verteilungsverzeichnis liegen und der Updater von dort die benachbarte
-Hauptanwendung im Offline-Selbsttest starten kann.
+Verteilungsverzeichnis liegen, der App-Selbsttest die gebündelte Anwendung
+offline startet und der separate Updater-Selbsttest PE-Struktur sowie
+SHA-256-Funktion der fertigen Updater-EXE bestätigt.
 
 ### Gemeinsames Icon
 
@@ -684,20 +705,21 @@ Die Umsetzung gilt als abgeschlossen, wenn:
 - macOS unverändert ohne Windows-Updater funktioniert;
 - alle automatisierten Tests und die manuelle Windows-Abnahme erfolgreich sind.
 
-## 20. Kritische Restpunkte
+## 20. Verbleibende Entscheidungen und Abnahmen
 
-Vor der Implementierung sind noch diese Werte verbindlich festzulegen:
+Die festen Pfade sind umgesetzt. Bei nicht erreichbarer oder noch instabiler
+Netzquelle startet die vorhandene lokale Version; die Stabilitätsprüfung misst
+zweimal mit 750 ms Abstand. `qm.exe.old` bleibt bis zum nächsten erfolgreichen
+Austausch erhalten und wird dann durch die bisherige lokale Version ersetzt.
 
-- endgültiger UNC-Pfad der Netzdatei für `NETWORK_EXE` im Block
-  „Verbindliche Pfade“ am Anfang dieses Dokuments;
-- endgültiger statischer lokaler Installationsordner für `LOCAL_INSTALL_DIR` im
-  selben Block;
-- Verhalten bei nicht erreichbarer Freigabe: still lokal starten oder Hinweis
-  anzeigen;
-- Wartezeit und Anzahl der Wiederholungen bei instabiler Netzdatei;
-- Aufbewahrungsdauer von `qm.exe.old`;
-- Zeitpunkt für eine digitale Windows-Signierung;
-- Verfahren zur späteren Aktualisierung des Updaters selbst.
+Noch offen sind:
+
+- manuelle Abnahme mit der echten Netzfreigabe und den vorgesehenen Rechten;
+- Zeitpunkt und Zertifikat für eine digitale Windows-Signierung;
+- Pilotprüfung mit dem tatsächlich eingesetzten Virenscanner und SmartScreen;
+- Verfahren zur späteren Aktualisierung des Updaters selbst;
+- optional eine längere Wiederholungsstrategie, falls die Veröffentlichung über
+  `.uploading` und atomare Umbenennung organisatorisch nicht zuverlässig erfolgt.
 
 Die einfache Datumsentscheidung ist für eine kontrollierte interne Verteilung
 vertretbar. Nicht verzichtet werden sollte auf Mutex, lokales Staging,

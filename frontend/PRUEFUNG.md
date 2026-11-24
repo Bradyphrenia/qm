@@ -133,18 +133,51 @@ Repositorytests rollen ihre Änderungen dagegen zurück.
 
 ## Automatische Prüfung
 
-36 Tests prüfen Login, Filter, Schemaabgleich, Themen-/Sitzungs-/Maßnahmenabläufe,
+44 Tests prüfen Login, Filter, Schemaabgleich, Themen-/Sitzungs-/Maßnahmenabläufe,
 atomare Speicherung, Versionskonflikte, doppelte Themenzuordnung, Beschlüsse,
 Vertagung, Wirksamkeitsprüfung sowie Dokument-Upload, Download, Größenlimit,
-Prüfsummen, Versionen, Zuordnungen und den Datenbank-Löschschutz.
+Prüfsummen, Versionen, Zuordnungen, den Datenbank-Löschschutz und den
+Windows-Einzelinstanzschutz.
 Auch der durchgängige Weg vom Thema über den TOP zur Maßnahme und ihrem Dokument
 ist geprüft. Das Öffnen externer Programme wird simuliert; temporäre Dateikopien
 und Dateiexport werden tatsächlich geprüft. Die Tests liefen
 historisch gegen die lokale PostgreSQL-17-Datenbank `epz`; die Fensterprüfungen
-liefen im Qt-Offscreen-Modus auf macOS. Der aktuelle Produktivpfad verwendet die
-eigenständige Datenbank `qm`. Windows und PostgreSQL 10 wurden nicht getestet.
+liefen zunächst im Qt-Offscreen-Modus auf macOS. Am 24.11.2026 bestanden alle 44
+Tests unter Windows mit Python 3.12.4 und pytest 9.2.0 gegen `qm_test`. Der
+gemeinsame Windows-Build und beide EXE-Selbsttests bestanden ebenfalls.
+PostgreSQL 10 ist weiterhin nicht getestet.
 
 Die Tests erstellen keine Datenbankstrukturen. Mit gesetztem `QM_TEST_DSN`
 verwenden sie das vorhandene Schema und rollen ihre neuen Datensätze zurück.
 Das kann reguläre Lücken in Audit-Sequenznummern erzeugen. Die bereits angelegten
 Musterdokumente und ihr Thema bleiben erhalten.
+
+## Windows-Updater manuell abnehmen
+
+1. `bundle.bat` ausführen und prüfen, dass `dist/qm.exe` und
+   `dist/qm-updater.exe` vorhanden sind und dasselbe QM-Symbol zeigen.
+2. Beide Dateien unmittelbar nach `C:\Users\chir-arzt\Documents\qm` kopieren.
+   Den normalen Start nur über `qm-updater.exe` ausführen.
+3. Ohne neuere Netzdatei prüfen, dass die lokale App startet. Danach das
+   Netzlaufwerk vorübergehend trennen; die lokale App muss weiterhin starten.
+4. Eine neue `qm.exe` erst als `qm.exe.uploading` nach
+   `J:\EPZ\Daten OA Troeger` kopieren und nach vollständigem Abschluss in
+   `qm.exe` umbenennen. Beim nächsten Updater-Start muss sie lokal übernommen
+   werden; die Vorversion muss als `qm.exe.old` erhalten bleiben.
+5. QM geöffnet lassen und den Updater erneut starten. Er muss den Austausch mit
+   einem verständlichen Hinweis ablehnen. Auch ein zweiter direkter Start von
+   `qm.exe` darf kein zweites Anwendungsfenster öffnen.
+6. Zwei Updater nahezu gleichzeitig starten. Nur einer darf weiterarbeiten.
+7. Eine unvollständige oder nicht als PE lesbare Netzdatei bereitstellen. Die
+   vorhandene lokale Anwendung darf nicht ersetzt werden.
+8. `qm-updater.exe` testweise in einen anderen Ordner kopieren. Ein normaler
+   Start muss wegen des falschen Installationsorts abgelehnt werden.
+9. `logs/updater.log`, Größe und Änderungszeit der lokalen EXE sowie das
+   Verhalten des tatsächlich eingesetzten Virenscanners und SmartScreen prüfen.
+
+Die automatisierte Prüfung umfasst zusätzlich elf Rust-Tests für Zeitvergleich,
+Erstinstallation, Austausch mit Vorversion, PE-Prüfung, Staging, Windows-Mutex
+und Prozesspfadprüfung. Am
+24.11.2026 waren Rust-Tests, Clippy, Release-Build, EXE-Selbsttest und alle 44
+Python-Tests erfolgreich. Eine Signatur-, SmartScreen- und Virenscannerprüfung
+ist weiterhin eine manuelle Abnahme auf dem Zielrechner.

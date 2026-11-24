@@ -10,5 +10,6 @@ venv/
 # Cython / PyInstaller
 /build/
 /dist/
+/updater/target/
 *.egg-info/
 .idea/

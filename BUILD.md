@@ -3,7 +3,8 @@
 Zwei getrennte Einstiegsskripte, analog zum Prothesen-Projekt:
 
 - `bundle`: macOS → `dist/qm.app`
-- `bundle.bat`: Windows 64-Bit → `dist/qm.exe` (Onefile, ohne Konsolenfenster)
+- `bundle.bat`: Windows 64-Bit → `dist/qm.exe` und `dist/qm-updater.exe`
+  (beide ohne Konsolenfenster)
 
 Beide verwenden `setup.py` für Cython und anschließend PyInstaller. Gemeinsame
 Buildlogik liegt in `build_tools/build.py`; Änderungen an der Modulliste müssen
@@ -59,9 +60,10 @@ Für diesen Iconfehler ist kein Python-Downgrade erforderlich.
 
 ## Windows
 
-Voraussetzungen: 64-Bit-Python und passende Microsoft C++ Build Tools mit
-C++-Werkzeugen und Windows SDK. Den Build bei Bedarf in einer **x64 Native Tools
-Command Prompt** starten. Die Compilerwahl muss zur Python-Installation passen.
+Voraussetzungen: 64-Bit-Python, Rust/Cargo und passende Microsoft C++ Build Tools
+mit C++-Werkzeugen und Windows SDK. Den Build bei Bedarf in einer **x64 Native
+Tools Command Prompt** starten. Die Compilerwahl muss zur Python-Installation
+passen. `rustc --version` und `cargo --version` müssen funktionieren.
 
 In der Eingabeaufforderung im QM-Projektordner:
 
@@ -76,10 +78,32 @@ verwendet bevorzugt `frontend\.venv\Scripts\python.exe`, sonst `python` aus PATH
 Optional vorher `set "QM_PYTHON=C:\Pfad\python.exe"` setzen.
 In PowerShell das Skript mit `.\bundle.bat` aufrufen.
 
-Die Windows-EXE muss auf Windows gebaut werden. Eine macOS-Buildumgebung erzeugt
-keine Windows-EXE. Ebenso muss ein Intel-/ARM-Build zur jeweiligen Zielarchitektur
-passen. Eine Python-Installation wird auf dem Zielrechner für das fertige Bundle
-nicht benötigt; PostgreSQL wird nicht mitgeliefert und muss erreichbar sein.
+Die Windows-EXEs müssen auf Windows gebaut werden. Eine macOS-Buildumgebung
+erzeugt keine Windows-EXE. Ebenso muss ein Intel-/ARM-Build zur jeweiligen
+Zielarchitektur passen. Python und Rust werden auf dem Zielrechner für die
+fertigen Dateien nicht benötigt; PostgreSQL muss erreichbar sein.
+
+Der Windows-Build führt zusätzlich `cargo fmt --check`, Clippy mit als Fehler
+behandelten Warnungen, die Rust-Tests und den Release-Build mit gesperrter
+`Cargo.lock` aus. Anschließend prüft `qm-updater.exe --self-test` PE-Struktur und
+SHA-256-Funktion. Das Windows-SDK-Werkzeug `rc.exe` bindet direkt dasselbe
+`frontend/qm.ico` ein, das auch die Hauptanwendung verwendet.
+
+Die festen Updaterpfade stehen in `updater/src/config.rs`:
+
+```text
+Netzquelle: J:\EPZ\Daten OA Troeger\qm.exe
+Lokaler Ordner: C:\Users\chir-arzt\Documents\qm
+```
+
+Für die Einrichtung beide Dateien aus `dist` unmittelbar in den lokalen Ordner
+kopieren und die Verknüpfung ausschließlich auf `qm-updater.exe` setzen. Der
+Updater lehnt einen normalen Start aus einem anderen Ordner ab; sein
+`--self-test` bleibt davon unabhängig.
+
+Eine neue Hauptanwendung wird zuerst als `qm.exe.uploading` auf das Netzlaufwerk
+kopiert und erst nach vollständig beendeter Übertragung in `qm.exe` umbenannt.
+Der Updater startet nie die Netzdatei direkt.
 
 ## Ablauf und Schutz des Quellcodes vor Build-Resten
 
@@ -99,6 +123,9 @@ nicht benötigt; PostgreSQL wird nicht mitgeliefert und muss erreichbar sein.
    verbunden. Dadurch verwenden auch Fenster und Taskleiste das QM-Icon.
 5. Das fertige Bundle wird erneut mit `--smoke-test` geprüft. Ein Fehler bricht
    den Build ab. Dieser Test benutzt keine Datenbank und keine Zugangsdaten.
+6. Nur unter Windows wird der native Rust-Updater gebaut, getestet und als
+   `dist/qm-updater.exe` neben `dist/qm.exe` abgelegt. Eine laufende App und ein
+   zweiter Updater werden über benannte Windows-Sperren erkannt.
 
 Nur Cython und den ersten Selbsttest ausführen:
 
@@ -125,9 +152,12 @@ Reverse Engineering. PyInstaller enthält weiterhin eine Python-Laufzeit.
   nach `frontend/PRUEFUNG.md` prüfen.
 - macOS-Bundles werden hier ohne Developer-ID und Notarisierung gebaut.
   Für die Verteilung an andere Macs Signierung/Notarisierung separat vorsehen.
-- Windows-Build, SmartScreen/Signierung und Start auf einem Rechner ohne
-  Entwicklungsumgebung müssen auf Windows geprüft werden.
+- Der Windows-Build ist geprüft. SmartScreen/Signierung und Start auf einem
+  separaten Rechner ohne Entwicklungsumgebung müssen noch geprüft werden.
 - Der Windows-Build verwendet das projektspezifische Icon `frontend/qm.ico`.
+- `qm.exe.old` ist die letzte lokale Vorversion. Bei einem Austauschfehler wird
+  sie automatisch zurückgespielt; nach einem erfolgreichen Update bleibt sie
+  für eine manuelle Wiederherstellung erhalten.
 - Beim Verteilen die Lizenzen der gebündelten Bibliotheken berücksichtigen.
 
 ## Hier verifizierter Stand
@@ -152,6 +182,17 @@ konvertiert. Syntaxprüfung von `build_tools/build.py` und `git diff --check`
 waren erfolgreich. Nach dieser Iconkorrektur wurde kein vollständiger
 Anwendungsbuild erneut ausgeführt; die obigen Bundle-/Datenbankprüfungen
 beschreiben den bisherigen Stand.
+
+### Windows-Updater vom 24. November 2026
+
+Der native Rust-Updater wurde unter Windows mit Rust 1.98.1 erstellt. Elf
+Rust-Tests, `cargo fmt --check`, Clippy ohne Warnungen, der optimierte
+Release-Build und der Selbsttest der fertigen EXE waren erfolgreich. Die
+Frontend-Suite bestand anschließend mit 44 Tests gegen `qm_test`. Auch der
+vollständige gemeinsame PyInstaller-/Updater-Build über `bundle.bat` war
+erfolgreich; `dist/qm.exe` und `dist/qm-updater.exe` bestanden ihre Selbsttests
+und zeigen dasselbe eingebettete QM-Symbol. Die manuelle Abnahme mit echter
+Netzveröffentlichung steht noch aus.
 
 ## Referenzen
 

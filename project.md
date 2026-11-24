@@ -388,3 +388,30 @@ Alle Indizes sind als Standard-B-Tree bzw. partielle Indizes umgesetzt, um optim
 - Andere Datenbanken gewähren Verbindungen teilweise allgemein über `PUBLIC`.
   Eine vollständige Verbindungsisolation würde koordinierte `PUBLIC`-Änderungen
   oder eine gezielte Regel in `pg_hba.conf` erfordern.
+
+---
+
+## 8. Windows-Updater und Auslieferung
+
+- Der native Rust-Updater liegt als eigenständiges Cargo-Projekt unter
+  `updater/` und verwendet keine externen Rust-Pakete.
+- Netzquelle und Installationsordner sind fest in `updater/src/config.rs`
+  hinterlegt: `J:\EPZ\Daten OA Troeger\qm.exe` und
+  `C:\Users\chir-arzt\Documents\qm`.
+- Anwender starten unter Windows ausschließlich `qm-updater.exe`; sie und
+  `qm.exe` liegen unmittelbar im selben Installationsordner.
+- Die Hauptanwendung hält `Local\QMDesktop-Application`, der Updater zusätzlich
+  `Local\QMDesktop-Updater`. Damit wird weder eine laufende App ersetzt noch ein
+  paralleler Austausch begonnen.
+- Ein Update wird anhand von `LastWriteTimeUtc` mit Zwei-Sekunden-Toleranz
+  entschieden. Die Netzdatei muss bei zwei Messungen stabil sein und wird als
+  `qm.exe.new` lokal anhand von Größe, SHA-256 und PE-Struktur geprüft.
+- Beim Austausch wird die bisherige Version als `qm.exe.old` erhalten. Schlägt
+  das Einsetzen fehl, wird sie zurückgespielt. Bei nicht erreichbarer oder nicht
+  sicher prüfbarer Netzquelle startet die vorhandene lokale Version.
+- `bundle.bat` erstellt und prüft `dist/qm.exe` sowie
+  `dist/qm-updater.exe`. Beide verwenden `frontend/qm.ico`.
+- Stand 24.11.2026: vollständiger gemeinsamer Windows-Build, beide
+  EXE-Selbsttests, elf Rust-Tests und alle 44 Python-Tests gegen `qm_test`
+  erfolgreich. Offen bleiben die echte Netzfreigaben-Abnahme sowie Signatur-,
+  SmartScreen- und Virenscannerprüfung.

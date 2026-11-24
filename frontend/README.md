@@ -70,6 +70,20 @@ Vorhandensein von `qm.thema`.
 Das Passwort wird nicht in QSettings gespeichert; erfolgreich verwendete
 Verbindungsdaten ohne Passwort werden lokal gespeichert.
 
+### Windows-Auslieferung und Updater
+
+Im ausgelieferten Windows-Betrieb startet der Anwender ausschließlich
+`qm-updater.exe`. Sie liegt zusammen mit `qm.exe` unmittelbar unter
+`C:\Users\chir-arzt\Documents\qm`. Der Updater prüft die fest konfigurierte
+Netzdatei `J:\EPZ\Daten OA Troeger\qm.exe`, installiert eine neuere stabile
+Datei mit Prüfsumme und Rücksicherung und startet danach immer die lokale App.
+Ist das Netzlaufwerk nicht erreichbar, wird die vorhandene lokale Version
+gestartet. Während QM geöffnet ist, findet kein Austausch statt.
+
+Die Hauptanwendung hält unter Windows die Einzelinstanz-Sperre
+`Local\QMDesktop-Application`; ein zweiter Start zeigt nur einen Hinweis. macOS
+und der direkte Entwicklungsstart bleiben unverändert.
+
 Die Anmelderolle `qm` besitzt keine Datenbankobjekte und keine direkten
 Tabellenrechte. Sie erbt die benötigten Rechte von der nicht anmeldbaren
 Gruppenrolle `qm_app`; Eigentümer der Objekte ist `qm_owner`. Weitere Benutzer
@@ -94,9 +108,10 @@ Datenbank-UI-Tests erzeugen Testdatensätze, rollen aber sämtliche Änderungen
 einschließlich Audit-Einträgen zurück. PostgreSQL-Sequenzen können dabei Lücken
 erhalten. Ein Schema wird nicht automatisch angelegt. Zugangsdaten nicht einchecken.
 
-Die Suite umfasst 39 Testfunktionen beziehungsweise 42 von pytest gesammelte
-Testfälle. Am 24.11.2026 wurden unter Windows mit Python 3.12.4 und pytest 9.2.0
-alle 42 Tests erfolgreich gegen die gesonderte Datenbank `qm_test` ausgeführt.
+Die Suite umfasst nach Ergänzung der Windows-Einzelinstanzprüfung 44 von pytest
+gesammelte Testfälle. Am 24.11.2026 wurden unter Windows mit Python 3.12.4 und
+pytest 9.2.0 alle 44 Tests erfolgreich gegen die gesonderte Datenbank `qm_test`
+ausgeführt.
 Der Start externer Programme wird simuliert; Dateiexport, temporäre Arbeitskopie,
 Änderungserkennung und ausdrückliche Übernahme werden tatsächlich geprüft. Für
 weitere vollständige Läufe ist `QM_TEST_DSN` auf eine Testdatenbank zu setzen.

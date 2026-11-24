@@ -67,6 +67,8 @@ def run():
     marker = os.environ.get('QM_SMOKE_RESULT')
     if marker:
         Path(marker).write_text(json.dumps({'ok': True, 'windows': len(windows)}), encoding='utf-8')
+    application.closeAllWindows()
+    application.quit()
 
 
 if __name__ == '__main__':

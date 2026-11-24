@@ -2,7 +2,8 @@ import sys
 from pathlib import Path
 
 from PySide6.QtGui import QIcon
-from PySide6.QtWidgets import QApplication, QDialog
+from PySide6.QtWidgets import QApplication, QDialog, QMessageBox
+from qm_app.windows_instance import acquire_application_instance
 from qm_app.ui.login_dialog import LoginDialog
 from qm_app.ui.main_window import MainWindow
 
@@ -39,6 +40,13 @@ def main():
     set_windows_app_user_model_id()
     app = QApplication(sys.argv)
     configure_application(app)
+    instance = acquire_application_instance()
+    if instance is None:
+        QMessageBox.information(
+            None, "QM ist bereits geöffnet",
+            "QM ist bereits geöffnet. Bitte verwende das vorhandene Fenster."
+        )
+        return 0
     # Closing the login must not terminate the main window's event loop.
     app.setQuitOnLastWindowClosed(False)
     login = LoginDialog()
@@ -52,6 +60,7 @@ def main():
         return app.exec()
     finally:
         database.close()
+        instance.close()
 
 
 if __name__ == "__main__":
