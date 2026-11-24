@@ -7,8 +7,8 @@ Implementierung. Bitte jeweils den vollständigen Wert rechts vom Gleichheitszei
 ersetzen:
 
 ```text
-NETWORK_EXE=\\SERVER\FREIGABE\QM\qm.exe
-LOCAL_INSTALL_DIR=C:\FESTER\PFAD\QM
+NETWORK_EXE=r"J:\EPZ\Daten OA Troeger\qm.exe"
+LOCAL_INSTALL_DIR=r"C:\Users\chir-arzt\Documents\qm"
 ```
 
 Dabei gilt:
