@@ -33,6 +33,13 @@ Das bestehende SQL-Schema bleibt für den MVP maßgeblich.
 - [x] **Suche nach Dateinamen** in der Dokumentenverwaltung ergänzen. Ein eigenes
   Dokumenttitelfeld existiert bisher nicht. Ein separates Titelfeld ist eine
   spätere, gesondert zu entscheidende Schemaerweiterung.
+- [x] **Statusfilter in der Dokumentenliste** (24.11.2026): Auswahlfeld neben der
+  Dateinamensuche, analog zu Themen und Maßnahmen. Standard ist **Aktuelle (ohne
+  archiviert/obsolet)**; „Alle Status“ oder ein einzelner Status blenden ältere
+  Versionen wieder ein. Reiner Anzeigefilter, keine Schemaänderung, Auswahl wird
+  nicht gespeichert. Gilt in der Gesamtübersicht und allen Dokument-Tabs.
+- [ ] Datenbanktest `test_document_widget_status_and_version` mit erweiterter
+  Filterprüfung gegen `qm_test` (inzwischen PostgreSQL 18) ausführen.
 
 ## Bekannte Grenzen zur späteren Revision
 

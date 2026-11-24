@@ -42,7 +42,8 @@ Datenbank `epz` mit PostgreSQL 17.12.
 4. **Maßnahmen:** Gesamtübersicht und Themen-Tab, Verantwortlichen-/Statusfilter,
    Überfälligkeitsmarkierung, Begründungen, Wirksamkeitsprüfung und Anlage aus TOPs.
 5. **Dokumente:** Upload, Zuordnung zu Themen/Sitzungen/TOPs/Maßnahmen,
-   Download/Öffnen, Dateinamensuche, Statuswechsel und neue Versionen.
+   Download/Öffnen, Dateinamensuche, Statusfilter (archivierte und obsolete
+   Dokumente standardmäßig ausgeblendet), Statuswechsel und neue Versionen.
    Dateiinhalte bleiben als BYTEA in der Datenbank; Listen laden nur Metadaten.
    Das Upload-Limit beträgt standardmäßig 25 MB und ist konfigurierbar.
 

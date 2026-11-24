@@ -8,7 +8,7 @@ from PySide6.QtCore import Qt,QSettings
 from PySide6.QtWidgets import QMessageBox,QFileDialog,QInputDialog,QDialog
 from qm_app.config import Settings
 from qm_app.db import DatabaseError,ConcurrencyError
-from qm_app.models import Thema,Sitzung,Besprechung,Massnahme
+from qm_app.models import Thema,Sitzung,Besprechung,Massnahme,DOKUMENT_STATUS
 from qm_app.repositories.thema_repo import ThemaRepository
 from qm_app.repositories.sitzung_repo import SitzungRepository
 from qm_app.repositories.besprechung_repo import BesprechungRepository
@@ -19,7 +19,7 @@ from qm_app.repositories.verlauf_repo import VerlaufRepository
 from qm_app.document_working_copy import WorkingCopyManager
 from qm_app.ui.massnahme_dialog import MassnahmeDialog
 from qm_app.ui.massnahme_view import MassnahmeModel,MassnahmeFilter,overdue
-from qm_app.ui.table_model import Column
+from qm_app.ui.table_model import Column,TableModel
 from qm_app.ui.dokument_widget import DokumentWidget,read_upload,safe_filename,write_download
 
 
@@ -181,6 +181,30 @@ def test_measure_filters_and_highlight(app):
     assert proxy.rowCount()==0
 
 
+def test_document_status_filter_hides_archived_by_default(app):
+    from types import SimpleNamespace
+    from qm_app.ui.dokument_widget import DokumentFilter,STATUS_FILTER_ACTIVE
+    rows=[SimpleNamespace(dateiname=f'{status}.txt',status=status) for status in DOKUMENT_STATUS]
+    model=TableModel([Column('dateiname','Dateiname'),Column('status','Status')],rows)
+    proxy=DokumentFilter()
+    proxy.setSourceModel(model)
+    assert sorted(proxy.sourceModel().rows[proxy.mapToSource(proxy.index(r,0)).row()].status
+        for r in range(proxy.rowCount()))==['entwurf','freigegeben','in_pruefung']
+    proxy.set_filters('','')
+    assert proxy.rowCount()==len(DOKUMENT_STATUS)
+    proxy.set_filters('archiviert','')
+    assert proxy.rowCount()==1
+    proxy.set_filters(STATUS_FILTER_ACTIVE,'ENTW')
+    assert proxy.rowCount()==1
+    proxy.set_filters(STATUS_FILTER_ACTIVE,'archiviert')
+    assert proxy.rowCount()==0
+    proxy.set_filters('obsolet','')
+    assert proxy.rowCount()==1
+    widget=DokumentWidget(MagicMock(),'thema',None)
+    assert widget.status.currentData()==STATUS_FILTER_ACTIVE
+    widget.close()
+
+
 def test_local_files_and_upload_limit(tmp_path):
     source=tmp_path/'source.txt'
     source.write_bytes(b'12345')
@@ -305,6 +329,9 @@ def test_document_widget_status_and_version(app,database,workflow,tmp_path,monke
     child=next(d for d in widget.model.rows if d.id!=id)
     assert child.vorgaenger_dokument_id==id
     assert repo.download(child.id)[1]==b'second'
+    assert widget.proxy.rowCount()==1
+    widget.status.setCurrentIndex(widget.status.findData(''))
+    assert widget.proxy.rowCount()==2
     widget.close()
 
 

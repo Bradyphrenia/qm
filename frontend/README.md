@@ -23,8 +23,8 @@ Schritt 4 ergänzt Maßnahmen als Gesamtübersicht und Themen-Tab, Filter,
 Überfälligkeitsmarkierung, Begründungen, Wirksamkeitsprüfung und Anlage aus einem
 bereits gespeicherten TOP.
 Schritt 5 ergänzt Dokumente in allen vier Kontexten sowie eine Gesamtübersicht:
-Upload, Zuordnung, Download/Öffnen, Statuswechsel, Dateinamensuche und neue
-Versionen. Die Anwendung verändert das Datenbankschema nicht.
+Upload, Zuordnung, Download/Öffnen, Statuswechsel, Dateinamensuche, Statusfilter
+und neue Versionen. Die Anwendung verändert das Datenbankschema nicht.
 Eine manuelle Prüfanleitung und die konkreten Speicherregeln stehen in `PRUEFUNG.md`.
 
 ## Auslieferbares App-Bundle bauen
@@ -125,7 +125,12 @@ fragt beim Upload nach dem Ziel. Ein bestehendes Dokument lässt sich dort über
 Zuordnungen der ausgewählten Vorgängerversion. Der Vorgänger wird in derselben
 Transaktion archiviert; sein Inhalt bleibt unverändert.
 Bereits abgelöste Versionen können keine weiteren direkten Nachfolger erhalten;
-bitte den letzten Nachfolger auswählen. Die Liste zeigt auch ältere Versionen.
+bitte den letzten Nachfolger auswählen.
+
+Die Statusauswahl neben der Dateinamensuche zeigt standardmäßig nur aktuelle
+Dokumente; `archiviert` und `obsolet` sind ausgeblendet. Über **Alle Status**
+oder einen einzelnen Status werden ältere Versionen wieder sichtbar. Der Filter
+wirkt nur auf die Anzeige und wird nicht gespeichert.
 
 **Öffnen** erzeugt eine verwaltete Arbeitskopie und startet das zum Dateityp
 gehörende externe Programm. Nach dem Speichern im externen Programm übernimmt

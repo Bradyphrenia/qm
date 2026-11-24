@@ -63,6 +63,9 @@ Repositorytests rollen ihre Änderungen dagegen zurück.
 7. **Neue Version** mit einer veränderten Testdatei wählen. Beide Inhalte müssen
    erhalten bleiben, der Vorgänger ist anschließend archiviert und der neue
    Datensatz ist ein Entwurf mit denselben Zuordnungen. Vorgänger/Gruppe prüfen.
+   Der archivierte Vorgänger ist in der Standardauswahl **Aktuelle (ohne
+   archiviert/obsolet)** ausgeblendet; über **Alle Status** oder `archiviert`
+   wird er wieder sichtbar. Die Zählzeile nennt dann „x von y Dokumenten“.
    Eine erneute Versionierung vom bereits abgelösten Vorgänger muss abgewiesen werden.
 8. Den neuen Entwurf mit **Öffnen** starten, im externen Programm bearbeiten und
    speichern. Danach **Bearbeitete Arbeitskopie übernehmen** wählen. Die Anwendung

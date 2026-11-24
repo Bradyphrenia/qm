@@ -32,6 +32,30 @@ def read_upload(path, limit):
     return Path(path).name, mimetypes.guess_type(path)[0] or 'application/octet-stream', data
 
 
+STATUS_FILTER_ACTIVE = '__aktuell__'
+INACTIVE_STATUS = ('archiviert', 'obsolet')
+
+
+class DokumentFilter(QSortFilterProxyModel):
+    """Kombiniert Dateinamensuche und Statusauswahl; blendet standardmäßig archivierte und obsolete Dokumente aus."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.status, self.text = STATUS_FILTER_ACTIVE, ''
+
+    def set_filters(self, status, text):
+        self.status, self.text = status, text.strip().casefold()
+        self.invalidate()
+
+    def filterAcceptsRow(self, row, parent):
+        item = self.sourceModel().rows[row]
+        if self.status == STATUS_FILTER_ACTIVE:
+            status_ok = item.status not in INACTIVE_STATUS
+        else:
+            status_ok = not self.status or item.status == self.status
+        return status_ok and self.text in (item.dateiname or '').casefold()
+
+
 class TargetDialog(QDialog):
     def __init__(self, repo, parent=None):
         super().__init__(parent)
@@ -77,9 +101,17 @@ class DokumentWidget(QWidget):
         self.notice=QLabel('Dokumentaktionen werden sofort gespeichert, unabhängig vom umgebenden Dialog.')
         self.notice.setWordWrap(True)
         layout.addWidget(self.notice)
+        bar=QHBoxLayout()
+        self.status=QComboBox()
+        self.status.addItem('Aktuelle (ohne archiviert/obsolet)',STATUS_FILTER_ACTIVE)
+        self.status.addItem('Alle Status','')
+        for status in DOKUMENT_STATUS:
+            self.status.addItem(status,status)
         self.search=QLineEdit()
         self.search.setPlaceholderText('Dateiname suchen …')
-        layout.addWidget(self.search)
+        bar.addWidget(self.status)
+        bar.addWidget(self.search)
+        layout.addLayout(bar)
         bar=QHBoxLayout()
         self.buttons={}
         for key,label,handler in [('upload','Hochladen',self.upload),('version','Neue Version',self.new_version),
@@ -100,11 +132,9 @@ class DokumentWidget(QWidget):
         layout.addLayout(bar)
         self.model=TableModel([Column('dateiname','Dateiname'),Column('dokumenttyp','Typ'),Column('status','Status'),
             Column('version','Version / Stand'),Column('dateigroesse','Bytes'),Column('erstellt_am','Erstellt')])
-        self.proxy=QSortFilterProxyModel(self)
+        self.proxy=DokumentFilter(self)
         self.proxy.setSourceModel(self.model)
         self.proxy.setSortRole(self.model.SortRole)
-        self.proxy.setFilterKeyColumn(0)
-        self.proxy.setFilterCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
         self.table=QTableView()
         self.table.setModel(self.proxy)
         self.table.setSortingEnabled(True)
@@ -121,7 +151,8 @@ class DokumentWidget(QWidget):
         self.message.setWordWrap(True)
         layout.addWidget(self.message)
         self.table.selectionModel().selectionChanged.connect(self.selection_changed)
-        self.search.textChanged.connect(self.proxy.setFilterFixedString)
+        self.search.textChanged.connect(self.filter)
+        self.status.currentIndexChanged.connect(self.filter)
         if entity and entity_id is None:
             self.notice.setText('Bitte den Datensatz zuerst speichern und erneut öffnen, um Dokumente zu verwalten.')
         self.selection_changed()
@@ -138,6 +169,16 @@ class DokumentWidget(QWidget):
         super().showEvent(event)
         if not self.loaded:
             self.reload()
+
+    def filter(self,*args):
+        self.proxy.set_filters(self.status.currentData(),self.search.text())
+        self.update_count()
+        self.selection_changed()
+
+    def update_count(self):
+        total,shown=len(self.model.rows),self.proxy.rowCount()
+        count=f'{total} Dokumente' if shown==total else f'{shown} von {total} Dokumenten angezeigt'
+        self.message.setText(f'{count} · Upload-Limit {Settings().upload_limit_mb()} MB')
 
     def selected(self):
         rows=self.table.selectionModel().selectedRows()
@@ -165,7 +206,7 @@ class DokumentWidget(QWidget):
             self.model.set_rows(rows)
             self.table.resizeColumnsToContents()
             self.table.setColumnWidth(0,260)
-            self.message.setText(f'{len(rows)} Dokumente · Upload-Limit {Settings().upload_limit_mb()} MB')
+            self.update_count()
             self.loaded=True
         except DatabaseError as error:
             self.message.setText(str(error))
