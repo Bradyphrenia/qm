@@ -115,7 +115,9 @@ Der Updater startet nie die Netzdatei direkt.
    im Frontend werden nicht überschrieben; kein `--inplace` im normalen Build.
 3. Ein Offline-Selbsttest lädt nachweislich binäre Module und erzeugt Hauptfenster,
    Login, Themen-, Sitzungs-, Maßnahmen- und TOP-Dialoge sowie die Dokumentenverwaltung.
-   Zusätzlich prüft er offline die Umwandlung von Word-Vorlagen (.dotx → .docx).
+   Zusätzlich prüft er offline die Umwandlung von Word-Vorlagen (.dotx → .docx)
+   und dass die deutsche Qt-Übersetzung (`qtbase_de`) geladen ist. Fehlen die
+   Übersetzungsdateien im Bundle, bricht der Build ab.
 4. PyInstaller verpackt ausschließlich aus dem Staging-Verzeichnis. Die Imports
    der Cython-Module werden zuvor aus dem Quellcode ermittelt und als Hidden
    Imports übergeben. So bleiben etwa Qt, Dataclasses und psycopg2 erreichbar.

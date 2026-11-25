@@ -75,18 +75,18 @@ Repositorytests rollen ihre Änderungen dagegen zurück.
 9. Optional dieselbe Version in zwei Anwendungsinstanzen öffnen. Nach der ersten
    erfolgreichen Übernahme muss die zweite einen Versionskonflikt melden; deren
    lokale Arbeitskopie muss weiterhin vorhanden sein.
-10. Eine Word-Vorlage (`.dotx`) einem Sammelthema, z. B. „Vorlagen und
-   Formulare“, hochladen. In der globalen Dokumentenübersicht auswählen und
-   **Öffnen** wählen. Nach Bestätigung und Auswahl einer Sitzung muss ein neues
-   Dokument `<Vorlagenname>_<Datum>.docx` als Entwurf entstehen, der Sitzung
-   zugeordnet sein und sich in Word als normale Datei öffnen. Text ergänzen,
-   mit Strg+S speichern (es darf kein „Speichern unter“-Dialog erscheinen) und
-   **Bearbeitete Arbeitskopie übernehmen** wählen. Die Vorlage muss unverändert
-   bleiben (gleiche Prüfsumme). Abbruch der Rückfrage darf nichts anlegen.
-8. Den neuen Datensatz auswählen, Status auf `freigegeben` setzen und neu laden.
-   Freigabebenutzer und erhöhter Änderungsstand müssen vorhanden sein.
-9. Das Upload-Limit vorübergehend reduzieren; eine zu große Datei muss
-   verständlich abgewiesen werden. Danach den gewünschten Wert wiederherstellen.
+10. Den neuen Datensatz auswählen, Status auf `freigegeben` setzen und neu laden.
+    Freigabebenutzer und erhöhter Änderungsstand müssen vorhanden sein.
+11. Das Upload-Limit vorübergehend reduzieren; eine zu große Datei muss
+    verständlich abgewiesen werden. Danach den gewünschten Wert wiederherstellen.
+12. Eine Word-Vorlage (`.dotx`) einem Sammelthema, z. B. „Vorlagen und
+    Formulare“, hochladen. In der globalen Dokumentenübersicht auswählen und
+    **Öffnen** wählen. Nach Bestätigung und Auswahl einer Sitzung muss ein neues
+    Dokument `<Vorlagenname>_<Datum>.docx` als Entwurf entstehen, der Sitzung
+    zugeordnet sein und sich in Word als normale Datei öffnen. Text ergänzen,
+    mit Strg+S speichern (es darf kein „Speichern unter“-Dialog erscheinen) und
+    **Bearbeitete Arbeitskopie übernehmen** wählen. Die Vorlage muss unverändert
+    bleiben (gleiche Prüfsumme). Abbruch der Rückfrage darf nichts anlegen.
 
 ## Speicherregeln und Grenzen
 

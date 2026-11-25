@@ -50,7 +50,15 @@ Das bestehende SQL-Schema bleibt für den MVP maßgeblich.
   Build mit erweitertem Selbsttest (`--compile-only`, danach vollständig) prüfen.
 - [ ] Protokollvorlage Komplikationsbesprechung als `.dotx` speichern, einem
   Sammelthema „Vorlagen und Formulare“ zuordnen und freigeben.
-- [ ] Ablauf mit realem Word unter Windows prüfen (Schritt 10 in `PRUEFUNG.md`).
+- [x] Ablauf mit realem Word unter Windows geprüft (Schritt 12 in `PRUEFUNG.md`,
+  25.11.2026). Eine nur umbenannte `.docx` mit Endung `.dotx` wird seitdem
+  ebenfalls akzeptiert und unverändert übernommen.
+- [x] **Deutsche Qt-Standardtexte** (25.11.2026): `main.py` lädt `qtbase_de` und
+  setzt die Locale fest auf Deutsch; Ja/Nein, Abbrechen und Dateidialoge waren
+  zuvor englisch. Unter Windows aus dem Quellcode bestätigt. Der Build-Selbsttest
+  bricht ab, wenn die Übersetzung im Bundle fehlt.
+- [ ] Vollständigen Windows-Build ausführen und prüfen, dass PyInstaller die
+  Qt-Übersetzungsdateien mitpackt (Selbsttest schlägt sonst fehl).
 
 ## Bekannte Grenzen zur späteren Revision
 

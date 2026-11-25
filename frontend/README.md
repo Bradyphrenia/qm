@@ -70,6 +70,12 @@ Vorhandensein von `qm.thema`.
 Das Passwort wird nicht in QSettings gespeichert; erfolgreich verwendete
 Verbindungsdaten ohne Passwort werden lokal gespeichert.
 
+Beim Start lädt `configure_application` die deutsche Qt-Übersetzung (`qtbase_de`)
+und setzt die Anwendungs-Locale fest auf Deutsch (Deutschland), unabhängig von der
+Systemsprache. Qt-Standardtexte wie **Ja**/**Nein**, **Abbrechen** und Dateidialoge
+erscheinen dadurch deutsch; Datums- und Zahlenformate in Qt-Feldern folgen
+ebenfalls der deutschen Locale.
+
 ### Windows-Auslieferung und Updater
 
 Im ausgelieferten Windows-Betrieb startet der Anwender ausschließlich
@@ -161,7 +167,8 @@ Arbeitskopie erzeugt keinen Datenbankeintrag. Bei Konflikten bleibt sie erhalten
 **Word-Vorlagen (`.dotx`)** werden beim **Öffnen** nicht selbst bearbeitet. Nach
 Rückfrage erzeugt die Anwendung daraus ein neues Dokument
 `<Vorlagenname>_<JJJJ-MM-TT>.docx` (Umwandlung in `template_to_docx`; nur der
-Inhaltstyp in `[Content_Types].xml` ändert sich). Es wird sofort als Entwurf
+Inhaltstyp in `[Content_Types].xml` ändert sich; eine nur umbenannte `.docx`
+wird unverändert übernommen). Es wird sofort als Entwurf
 gespeichert, dem aktuellen Datensatz zugeordnet (in der globalen Übersicht nach
 Zielauswahl) und als normale Arbeitskopie geöffnet. Strg+S im externen Programm
 speichert damit in die Arbeitskopie; anschließend **Bearbeitete Arbeitskopie

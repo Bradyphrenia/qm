@@ -378,12 +378,12 @@ def test_document_widget_ignores_unchanged_working_copy(app,database,workflow,mo
     widget.close()
 
 
-def make_dotx():
+def make_dotx(main='template'):
     import io,zipfile
     output=io.BytesIO()
     with zipfile.ZipFile(output,'w') as archive:
         archive.writestr('[Content_Types].xml','<Types><Override PartName="/word/document.xml" ContentType='
-            '"application/vnd.openxmlformats-officedocument.wordprocessingml.template.main+xml"/></Types>')
+            f'"application/vnd.openxmlformats-officedocument.wordprocessingml.{main}.main+xml"/></Types>')
         archive.writestr('word/document.xml','<w:document>Protokoll</w:document>')
     return output.getvalue()
 
@@ -397,7 +397,7 @@ def test_template_to_docx():
     assert converted.read('word/document.xml')==b'<w:document>Protokoll</w:document>'
     with pytest.raises(DatabaseError):
         template_to_docx(b'kein zip')
-    renamed_docx=make_dotx().replace(b'template.main+xml',b'document.main+xml')
+    renamed_docx=make_dotx('document')
     assert template_to_docx(renamed_docx)==renamed_docx
     other=io.BytesIO()
     with zipfile.ZipFile(other,'w') as archive:
