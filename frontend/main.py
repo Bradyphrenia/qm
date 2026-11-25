@@ -1,6 +1,7 @@
 import sys
 from pathlib import Path
 
+from PySide6.QtCore import QLibraryInfo, QLocale, QTranslator
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication, QDialog, QMessageBox
 from qm_app.windows_instance import acquire_application_instance
@@ -28,9 +29,21 @@ def set_windows_app_user_model_id():
     )
 
 
+def install_german_translation(app):
+    """Load Qt's own German texts (Ja/Nein, Abbrechen, Dateidialoge) independent of the OS locale."""
+    QLocale.setDefault(QLocale(QLocale.Language.German, QLocale.Country.Germany))
+    translator = QTranslator(app)
+    path = QLibraryInfo.path(QLibraryInfo.LibraryPath.TranslationsPath)
+    if translator.load(QLocale(), "qtbase", "_", path):
+        app.installTranslator(translator)
+        return True
+    return False
+
+
 def configure_application(app):
     app.setOrganizationName("QM")
     app.setApplicationName("QM Desktop")
+    install_german_translation(app)
     icon_path = application_icon_path()
     if icon_path.is_file():
         app.setWindowIcon(QIcon(str(icon_path)))

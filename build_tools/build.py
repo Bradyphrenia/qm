@@ -50,7 +50,7 @@ def smoke(command, directory):
         env['QM_SMOKE_RESULT'] = str(marker)
         env['PYTHONDONTWRITEBYTECODE'] = '1'
         run(command, cwd=directory, env=env, timeout=120)
-        if not marker.exists() or json.loads(marker.read_text()) != {'ok': True, 'windows': 6}:
+        if not marker.exists() or json.loads(marker.read_text()) != {'ok': True, 'windows': 7}:
             raise RuntimeError('Der Anwendungs-Selbsttest hat keinen erfolgreichen Abschluss gemeldet.')
 
 

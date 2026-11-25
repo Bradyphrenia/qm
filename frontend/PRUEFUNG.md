@@ -75,6 +75,14 @@ Repositorytests rollen ihre Änderungen dagegen zurück.
 9. Optional dieselbe Version in zwei Anwendungsinstanzen öffnen. Nach der ersten
    erfolgreichen Übernahme muss die zweite einen Versionskonflikt melden; deren
    lokale Arbeitskopie muss weiterhin vorhanden sein.
+10. Eine Word-Vorlage (`.dotx`) einem Sammelthema, z. B. „Vorlagen und
+   Formulare“, hochladen. In der globalen Dokumentenübersicht auswählen und
+   **Öffnen** wählen. Nach Bestätigung und Auswahl einer Sitzung muss ein neues
+   Dokument `<Vorlagenname>_<Datum>.docx` als Entwurf entstehen, der Sitzung
+   zugeordnet sein und sich in Word als normale Datei öffnen. Text ergänzen,
+   mit Strg+S speichern (es darf kein „Speichern unter“-Dialog erscheinen) und
+   **Bearbeitete Arbeitskopie übernehmen** wählen. Die Vorlage muss unverändert
+   bleiben (gleiche Prüfsumme). Abbruch der Rückfrage darf nichts anlegen.
 8. Den neuen Datensatz auswählen, Status auf `freigegeben` setzen und neu laden.
    Freigabebenutzer und erhöhter Änderungsstand müssen vorhanden sein.
 9. Das Upload-Limit vorübergehend reduzieren; eine zu große Datei muss
@@ -130,6 +138,8 @@ Repositorytests rollen ihre Änderungen dagegen zurück.
 - Änderungen an einer extern geöffneten Arbeitskopie werden bewusst nicht
   automatisch hochgeladen. Nach dem Speichern ist **Bearbeitete Arbeitskopie
   übernehmen** zu verwenden. Konflikte lassen die lokale Kopie bestehen.
+- Word-Vorlagen benötigen derzeit eine Zuordnung zu einem Datensatz (Sammelthema),
+  da es keine eigene Vorlagenverwaltung gibt. `.dotm` wird nicht umgewandelt.
 
 ## Automatische Prüfung
 
@@ -138,6 +148,10 @@ atomare Speicherung, Versionskonflikte, doppelte Themenzuordnung, Beschlüsse,
 Vertagung, Wirksamkeitsprüfung sowie Dokument-Upload, Download, Größenlimit,
 Prüfsummen, Versionen, Zuordnungen, den Datenbank-Löschschutz und den
 Windows-Einzelinstanzschutz.
+Seit 25.11.2026 kommen zwei Tests für Word-Vorlagen hinzu (insgesamt 46); sie
+sind noch nicht gegen `qm_test` gelaufen. Der Build-Selbsttest prüft zusätzlich
+die Dokumentenverwaltung als siebtes Fenster und die Vorlagenumwandlung im
+kompilierten Modul.
 Auch der durchgängige Weg vom Thema über den TOP zur Maßnahme und ihrem Dokument
 ist geprüft. Das Öffnen externer Programme wird simuliert; temporäre Dateikopien
 und Dateiexport werden tatsächlich geprüft. Die Tests liefen

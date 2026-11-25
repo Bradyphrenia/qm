@@ -1,4 +1,5 @@
 from contextlib import contextmanager
+from datetime import date
 from pathlib import Path
 import mimetypes
 from uuid import UUID
@@ -9,7 +10,8 @@ from PySide6.QtWidgets import (QWidget,QVBoxLayout,QHBoxLayout,QLabel,QLineEdit,
     QDialogButtonBox,QComboBox,QFormLayout,QApplication)
 from qm_app.config import Settings
 from qm_app.db import DatabaseError
-from qm_app.document_working_copy import safe_filename, working_copy_manager, write_download
+from qm_app.document_working_copy import (DOCX_MIME, is_word_template, safe_filename, template_to_docx,
+    working_copy_manager, write_download)
 from qm_app.models import DOKUMENT_STATUS
 from qm_app.repositories.dokument_repo import DokumentRepository, ENTITIES
 from qm_app.ui.table_model import TableModel, Column
@@ -268,11 +270,40 @@ class DokumentWidget(QWidget):
         item=self.selected()
         if not item:
             return
+        if is_word_template(item.dateiname):
+            self.create_from_template(item)
+        else:
+            self.open_working_copy(item.id,item.version)
+
+    def create_from_template(self,item):
+        answer=QMessageBox.question(self,'Neues Dokument aus Vorlage',
+            f'Aus der Vorlage „{item.dateiname}“ ein neues Word-Dokument erstellen, sofort speichern und öffnen?\n\n'
+            'Die Vorlage selbst bleibt unverändert. Zum Pflegen der Vorlage „Speichern unter“ und „Neue Version“ verwenden.')
+        if answer!=QMessageBox.StandardButton.Yes:
+            return
+        target=(self.entity,self.entity_id) if self.entity else self.choose_target()
+        if not target:
+            return
+        limit=Settings().upload_limit_mb()*1024*1024
+        name=f'{Path(safe_filename(item.dateiname)).stem}_{date.today().isoformat()}.docx'
         try:
             with busy():
-                copy=self.working_copies.get(item.id)
+                data=template_to_docx(self.repo.download(item.id)[1])
+                new_id=self.repo.upload(name,DOCX_MIME,data,*target,limit=limit)
+                document=self.repo.get(new_id)
+        except (DatabaseError,OSError) as error:
+            QMessageBox.warning(self,'Dokumentaktion fehlgeschlagen',str(error))
+            return
+        self.reload()
+        self.select_document(new_id)
+        self.open_working_copy(document.id,document.version)
+
+    def open_working_copy(self,document_id,version):
+        try:
+            with busy():
+                copy=self.working_copies.get(document_id)
                 if copy is None:
-                    copy=self.working_copies.create(self.repo.checkout(item.id,item.version))
+                    copy=self.working_copies.create(self.repo.checkout(document_id,version))
                 opened=QDesktopServices.openUrl(QUrl.fromLocalFile(str(copy.path)))
             if not opened:
                 raise DatabaseError('Kein passendes Programm zum Öffnen gefunden. Bitte „Speichern unter“ verwenden.')

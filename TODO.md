@@ -40,6 +40,17 @@ Das bestehende SQL-Schema bleibt für den MVP maßgeblich.
   nicht gespeichert. Gilt in der Gesamtübersicht und allen Dokument-Tabs.
 - [ ] Datenbanktest `test_document_widget_status_and_version` mit erweiterter
   Filterprüfung gegen `qm_test` (inzwischen PostgreSQL 18) ausführen.
+- [x] **Neues Dokument aus Word-Vorlage** (25.11.2026): **Öffnen** einer `.dotx`
+  erzeugt nach Rückfrage eine `.docx`, speichert sie sofort als Entwurf mit
+  Zuordnung und öffnet sie als Arbeitskopie. Die Vorlage bleibt unverändert.
+  Keine Schemaänderung, keine neue Abhängigkeit. Build-Selbsttest um
+  Dokumentenverwaltung und Vorlagenumwandlung erweitert (7 Fenster).
+- [ ] Neue Tests `test_template_to_docx` und
+  `test_document_widget_creates_document_from_template` gegen `qm_test` ausführen;
+  Build mit erweitertem Selbsttest (`--compile-only`, danach vollständig) prüfen.
+- [ ] Protokollvorlage Komplikationsbesprechung als `.dotx` speichern, einem
+  Sammelthema „Vorlagen und Formulare“ zuordnen und freigeben.
+- [ ] Ablauf mit realem Word unter Windows prüfen (Schritt 10 in `PRUEFUNG.md`).
 
 ## Bekannte Grenzen zur späteren Revision
 
@@ -55,6 +66,10 @@ Das bestehende SQL-Schema bleibt für den MVP maßgeblich.
   vorhandener Dokumentversionen werden per Trigger geschützt; ein eindeutiger
   Index verhindert mehrere direkte Nachfolger. Die Versionsgruppen-Sperre
   serialisiert zusätzlich die kooperierenden Anwendungsschreiber.
+- [ ] **Vorlagenverwaltung entscheiden:** Vorlagen brauchen derzeit eine
+  Zuordnung zu einem Sammelthema, weil jedes Dokument einem Datensatz zugeordnet
+  sein muss. Eine eigene Vorlagenauswahl (z. B. direkt in der Sitzung) wäre die
+  sauberere Lösung. `.dotm` wird bewusst nicht umgewandelt.
 - [ ] **Maßnahmenabschluss abstimmen:** Abschlussdatum wird explizit gepflegt;
   Statuswechsel ergänzen es nicht automatisch. Prüfen, ob künftig ein Pflichtfeld
   oder eine automatische Vorbelegung gewünscht wird.

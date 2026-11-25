@@ -113,7 +113,11 @@ gesammelte Testfälle. Am 24.11.2026 wurden unter Windows mit Python 3.12.4 und
 pytest 9.2.0 alle 44 Tests erfolgreich gegen die gesonderte Datenbank `qm_test`
 ausgeführt.
 Der Start externer Programme wird simuliert; Dateiexport, temporäre Arbeitskopie,
-Änderungserkennung und ausdrückliche Übernahme werden tatsächlich geprüft. Für
+Änderungserkennung und ausdrückliche Übernahme werden tatsächlich geprüft.
+Am 25.11.2026 kamen zwei Tests für Word-Vorlagen hinzu (Umwandlung `.dotx` →
+`.docx` sowie Erzeugen und Öffnen eines neuen Dokuments aus einer Vorlage);
+die Suite umfasst damit 46 Testfälle. Diese Erweiterung ist noch nicht gegen
+`qm_test` ausgeführt. Für
 weitere vollständige Läufe ist `QM_TEST_DSN` auf eine Testdatenbank zu setzen.
 
 ## Speicherregeln
@@ -153,6 +157,21 @@ gehörende externe Programm. Nach dem Speichern im externen Programm übernimmt
 Entwurfsversion und archiviert den geöffneten Vorgänger. Vorher werden Dateigröße,
 SHA-256, Ausgangsversion und das Ende der Versionskette geprüft. Eine unveränderte
 Arbeitskopie erzeugt keinen Datenbankeintrag. Bei Konflikten bleibt sie erhalten.
+
+**Word-Vorlagen (`.dotx`)** werden beim **Öffnen** nicht selbst bearbeitet. Nach
+Rückfrage erzeugt die Anwendung daraus ein neues Dokument
+`<Vorlagenname>_<JJJJ-MM-TT>.docx` (Umwandlung in `template_to_docx`; nur der
+Inhaltstyp in `[Content_Types].xml` ändert sich). Es wird sofort als Entwurf
+gespeichert, dem aktuellen Datensatz zugeordnet (in der globalen Übersicht nach
+Zielauswahl) und als normale Arbeitskopie geöffnet. Strg+S im externen Programm
+speichert damit in die Arbeitskopie; anschließend **Bearbeitete Arbeitskopie
+übernehmen**. Die Vorlage bleibt unverändert; gepflegt wird sie über **Speichern
+unter** und **Neue Version**. Makrovorlagen (`.dotm`) werden wie gewöhnliche
+Dateien geöffnet.
+
+Da jedes Dokument einem Datensatz zugeordnet sein muss, Vorlagen bis zu einer
+eigenen Vorlagenverwaltung einem Sammelthema (z. B. „Vorlagen und Formulare“)
+zuordnen und aus der globalen Dokumentenübersicht verwenden.
 
 Die vorhandene Spalte `version` dient zugleich als optimistischer Änderungsstand:
 Neue Dateien starten mit 1, Statuswechsel erhöhen den Stand der jeweiligen Zeile,

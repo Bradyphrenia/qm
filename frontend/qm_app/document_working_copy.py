@@ -1,9 +1,11 @@
 from dataclasses import dataclass
 import hashlib
+import io
 from pathlib import Path
 import re
 import shutil
 from uuid import UUID
+import zipfile
 
 from PySide6.QtCore import QDir, QIODevice, QLockFile, QSaveFile, QTemporaryDir
 from PySide6.QtWidgets import QApplication
@@ -17,6 +19,43 @@ def safe_filename(name):
     if not name or name.split('.')[0].upper() in reserved:
         name = 'Dokument_' + name
     return name
+
+
+DOCX_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+_TEMPLATE_MAIN = b'application/vnd.openxmlformats-officedocument.wordprocessingml.template.main+xml'
+_DOCUMENT_MAIN = b'application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml'
+
+
+def is_word_template(name):
+    # Nur makrofreie Vorlagen; .dotm behält das bisherige Öffnen-Verhalten.
+    return (name or '').lower().endswith('.dotx')
+
+
+def template_to_docx(data):
+    """Wandelt eine Word-Vorlage (.dotx) in ein normales Dokument (.docx) um.
+
+    Beide Formate sind identisch bis auf den Inhaltstyp des Hauptteils in [Content_Types].xml.
+    Word öffnet das Ergebnis als vorhandene Datei, sodass Strg+S in die Arbeitskopie speichert.
+    Trägt die Datei bereits den Dokument-Inhaltstyp (umbenannte .docx, manche LibreOffice-
+    Versionen), wird sie unverändert übernommen.
+    """
+    try:
+        with zipfile.ZipFile(io.BytesIO(data)) as source:
+            types = source.read('[Content_Types].xml')
+            if _TEMPLATE_MAIN not in types:
+                if _DOCUMENT_MAIN in types:
+                    return data
+                raise DatabaseError('Die Datei ist keine gültige Word-Vorlage (.dotx).')
+            output = io.BytesIO()
+            with zipfile.ZipFile(output, 'w', zipfile.ZIP_DEFLATED) as target:
+                for entry in source.infolist():
+                    if entry.filename == '[Content_Types].xml':
+                        target.writestr(entry, types.replace(_TEMPLATE_MAIN, _DOCUMENT_MAIN))
+                    else:
+                        target.writestr(entry, source.read(entry))
+    except (zipfile.BadZipFile, KeyError) as error:
+        raise DatabaseError('Die Datei ist keine gültige Word-Vorlage (.dotx).') from error
+    return output.getvalue()
 
 
 def write_download(path, data):

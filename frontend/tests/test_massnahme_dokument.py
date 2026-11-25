@@ -16,7 +16,7 @@ from qm_app.repositories.massnahme_repo import MassnahmeRepository
 from qm_app.repositories.dokument_repo import DokumentRepository,ENTITIES
 from qm_app.repositories.dokument_repo import DocumentSnapshot
 from qm_app.repositories.verlauf_repo import VerlaufRepository
-from qm_app.document_working_copy import WorkingCopyManager
+from qm_app.document_working_copy import WorkingCopyManager,template_to_docx,is_word_template
 from qm_app.ui.massnahme_dialog import MassnahmeDialog
 from qm_app.ui.massnahme_view import MassnahmeModel,MassnahmeFilter,overdue
 from qm_app.ui.table_model import Column,TableModel
@@ -375,4 +375,56 @@ def test_document_widget_ignores_unchanged_working_copy(app,database,workflow,mo
     assert len(repo.list('thema',workflow['thema']))==1
     question.assert_not_called()
     app.qm_working_copy_manager.discard(id)
+    widget.close()
+
+
+def make_dotx():
+    import io,zipfile
+    output=io.BytesIO()
+    with zipfile.ZipFile(output,'w') as archive:
+        archive.writestr('[Content_Types].xml','<Types><Override PartName="/word/document.xml" ContentType='
+            '"application/vnd.openxmlformats-officedocument.wordprocessingml.template.main+xml"/></Types>')
+        archive.writestr('word/document.xml','<w:document>Protokoll</w:document>')
+    return output.getvalue()
+
+
+def test_template_to_docx():
+    import io,zipfile
+    assert is_word_template('Protokoll.DOTX') and not is_word_template('Protokoll.dotm')
+    converted=zipfile.ZipFile(io.BytesIO(template_to_docx(make_dotx())))
+    types=converted.read('[Content_Types].xml')
+    assert b'document.main+xml' in types and b'template.main+xml' not in types
+    assert converted.read('word/document.xml')==b'<w:document>Protokoll</w:document>'
+    with pytest.raises(DatabaseError):
+        template_to_docx(b'kein zip')
+    renamed_docx=make_dotx().replace(b'template.main+xml',b'document.main+xml')
+    assert template_to_docx(renamed_docx)==renamed_docx
+    other=io.BytesIO()
+    with zipfile.ZipFile(other,'w') as archive:
+        archive.writestr('[Content_Types].xml','<Types/>')
+    with pytest.raises(DatabaseError):
+        template_to_docx(other.getvalue())
+
+
+def test_document_widget_creates_document_from_template(app,database,workflow,monkeypatch):
+    from pathlib import Path
+    from PySide6.QtGui import QDesktopServices
+    repo=DokumentRepository(database)
+    template=make_dotx()
+    id=repo.upload('Protokoll.dotx','application/octet-stream',template,'sitzung',workflow['sitzung'])
+    widget=DokumentWidget(database,'sitzung',workflow['sitzung'])
+    widget.reload()
+    widget.table.selectRow(0)
+    urls=[]
+    monkeypatch.setattr(QDesktopServices,'openUrl',lambda url: urls.append(url) or True)
+    monkeypatch.setattr(QMessageBox,'question',lambda *args,**kwargs: QMessageBox.StandardButton.Yes)
+    widget.open_document()
+    documents=repo.list('sitzung',workflow['sitzung'])
+    created=next(d for d in documents if d.id!=id)
+    assert created.dateiname.endswith('.docx') and created.status=='entwurf'
+    assert repo.download(id)[1]==template
+    assert Path(urls[0].toLocalFile()).suffix=='.docx'
+    assert app.qm_working_copy_manager.get(created.id) is not None
+    assert app.qm_working_copy_manager.get(id) is None
+    app.qm_working_copy_manager.discard(created.id)
     widget.close()

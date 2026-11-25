@@ -114,7 +114,8 @@ Der Updater startet nie die Netzdatei direkt.
    `build/compiled/` wird bei jedem Build neu aufgebaut. Die Python-Quelldateien
    im Frontend werden nicht überschrieben; kein `--inplace` im normalen Build.
 3. Ein Offline-Selbsttest lädt nachweislich binäre Module und erzeugt Hauptfenster,
-   Login sowie Themen-, Sitzungs-, Maßnahmen- und TOP-Dialoge.
+   Login, Themen-, Sitzungs-, Maßnahmen- und TOP-Dialoge sowie die Dokumentenverwaltung.
+   Zusätzlich prüft er offline die Umwandlung von Word-Vorlagen (.dotx → .docx).
 4. PyInstaller verpackt ausschließlich aus dem Staging-Verzeichnis. Die Imports
    der Cython-Module werden zuvor aus dem Quellcode ermittelt und als Hidden
    Imports übergeben. So bleiben etwa Qt, Dataclasses und psycopg2 erreichbar.
@@ -147,7 +148,7 @@ Reverse Engineering. PyInstaller enthält weiterhin eine Python-Laufzeit.
 
 ## Abnahme und Verteilung
 
-- Die sechs Offline-Fensterprüfungen ersetzen nicht die fachlichen Tests und
+- Die sieben Offline-Fensterprüfungen ersetzen nicht die fachlichen Tests und
   keinen Test auf einem frischen Zielrechner. Die Datenbankabläufe weiterhin
   nach `frontend/PRUEFUNG.md` prüfen.
 - macOS-Bundles werden hier ohne Developer-ID und Notarisierung gebaut.
