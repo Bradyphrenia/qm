@@ -1,5 +1,5 @@
 [package]
-name = "qm-updater"
+name = "qm-updater_r"
 version = "0.1.0"
 edition = "2024"
 build = "build.rs"
