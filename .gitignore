@@ -13,3 +13,4 @@ venv/
 /updater/target/
 *.egg-info/
 .idea/
+/updater_rau/target
